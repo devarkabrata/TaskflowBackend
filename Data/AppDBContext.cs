@@ -18,7 +18,6 @@ namespace TaskFlowBackend.Data
             base.OnModelCreating(modelBuilder);
 
             // Fluent API configurations
-            
             FluentAPIConfigurations.ConfigureUser(modelBuilder);
         }
     }
