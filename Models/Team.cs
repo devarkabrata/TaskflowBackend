@@ -17,8 +17,6 @@ namespace TaskFlowBackend.Models
         public User Admin { get; set; } = null!;
         public User Creator { get; set; } = null!;
         public ICollection<TeamMember> Members { get; set; } = new List<TeamMember>();
-        public ICollection<BoardStatus> BoardStatuses { get; set; } = new List<BoardStatus>();
         public ICollection<TeamInvitation> Invitations { get; set; } = new List<TeamInvitation>();
-        public ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
     }
 }

@@ -21,7 +21,5 @@ namespace TaskFlowBackend.Models
         public ICollection<Team> CreatedTeams { get; set; } = new List<Team>();
         public ICollection<TeamMember> TeamMemberships { get; set; } = new List<TeamMember>();
         public ICollection<TeamInvitation> SentTeamInvitations { get; set; } = new List<TeamInvitation>();
-        public ICollection<TaskItem> CreatedTasks { get; set; } = new List<TaskItem>();
-        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     }
 }
