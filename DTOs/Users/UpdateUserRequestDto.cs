@@ -13,5 +13,7 @@ namespace TaskFlowBackend.DTOs.Users
         [Url(ErrorMessage = "AvatarUrl must be a valid URL.")]
         [StringLength(500, ErrorMessage = "AvatarUrl must not exceed 500 characters.")]
         public string? AvatarUrl { get; set; }
+
+        public string? AvatarPublicId { get; set; }
     }
 }

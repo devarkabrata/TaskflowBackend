@@ -5,77 +5,71 @@ using TaskFlowBackend.DTOs.Users;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Models;
+using TaskFlowBackend.Repository.Interfaces;
 using TaskFlowBackend.Services.Interfaces;
 
 namespace TaskFlowBackend.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly AppDBContext _db;
         private readonly ITokenService _tokenService;
+        private readonly IUserRepository _userRepo;
 
-        public AuthService(AppDBContext db, ITokenService tokenService)
+        public AuthService(ITokenService tokenService, IUserRepository userRepo)
         {
-            _db = db;
             _tokenService = tokenService;
+            _userRepo = userRepo;
         }
 
-        public async Task<AuthResponseDto> SignupAsync(SignupRequestDto dto)
+        public async Task<User?> SignupAsync(SignupRequestDto dto)
         {
-            var emailTaken = await _db.Users.AnyAsync(u => u.Email == dto.Email);
-            if (emailTaken)
+            var emailTaken = await _userRepo.GetUserByEmailAsync(dto.Email);
+            if (emailTaken != null)
                 throw new ValidationException("Validation failed.", new List<ApiError>
                 {
                     new ApiError { Field = "email", Code = "EMAIL_TAKEN", Message = "An account with this email already exists." }
                 });
 
-            var user = new User
+            var newUser = new CreateUserRequestDto
             {
                 Name = dto.Name,
                 Email = dto.Email,
-                Title = dto.Title ?? string.Empty,
-                AvatarInitials = ComputeInitials(dto.Name),
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Title = dto.Title,
+                Password = dto.Password
             };
 
-            _db.Users.Add(user);
-            await _db.SaveChangesAsync();
+            var resp = await _userRepo.CreateUserAsync(newUser);
 
-            return BuildResponse(user);
+            return resp;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto dto)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-                throw new UnauthorizedException("Invalid email or password.");
+            var user = await _userRepo.GetUserByEmailAsync(dto.Email);
 
-            return BuildResponse(user);
-        }
-
-        private AuthResponseDto BuildResponse(User user)
-        {
-            return new AuthResponseDto
+            if(user == null)
             {
-                Token = _tokenService.GenerateToken(user),
-                User = new UserResponseDto
-                {
-                    Id = user.Id,
-                    Name = user.Name,
-                    Email = user.Email,
-                    Title = user.Title,
-                    AvatarInitials = user.AvatarInitials,
-                    AvatarUrl = user.AvatarUrl,
-                }
-            };
-        }
+                throw new UnauthorizedException("Email does not exist.");
+            }
 
-        private static string ComputeInitials(string name)
-        {
-            var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 0) return "?";
-            if (parts.Length == 1) return parts[0][0].ToString().ToUpper();
-            return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+            if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            {
+                throw new UnauthorizedException("Password is incorrect. Please try with another Password");
+            }
+
+            // Generate JWT Access token
+            string accessToken = _tokenService.GenerateAccessToken(user);
+
+            // Generate Refresh Token
+            string refreshToken = _tokenService.GenerateRefreshToken();
+
+            var result = new AuthResponseDto
+            {
+                Token = accessToken,
+                RefreshToken = refreshToken
+            };
+
+            return result;
         }
     }
 }
