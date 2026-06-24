@@ -7,5 +7,6 @@ namespace TaskFlowBackend.Services.Interfaces
     {
         Task<User?> SignupAsync(SignupRequestDto dto);
         Task<AuthResponseDto> LoginAsync(LoginRequestDto dto);
+        Task<string?> RefreshAsync(string refreshToken);
     }
 }

@@ -15,13 +15,6 @@ namespace TaskFlowBackend.Repository
         {
             _context = dbcontext;
         }
-        private static string ComputeInitials(string name)
-        {
-            var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 0) return "?";
-            if (parts.Length == 1) return parts[0][0].ToString().ToUpper();
-            return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
-        }
 
         // Getting user by email
         public async Task<User?> GetUserByEmailAsync(string email)
@@ -38,48 +31,19 @@ namespace TaskFlowBackend.Repository
         }
 
         // Creating user
-        public async Task<User?> CreateUserAsync(CreateUserRequestDto user)
+        public async Task<User?> CreateUserAsync(User user)
         {
-            // Making the password hash using BCrypt
-            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(user.Password);
-
-            var newUser = new User
-            {
-                Id = Guid.NewGuid(),
-                Name = user.Name,
-                Title = user.Title ?? string.Empty,
-                Email = user.Email,
-                AvatarUrl = user.AvatarUrl ?? string.Empty,
-                AvatarPublicId = user.AvatarPublicId ?? string.Empty,
-                AvatarInitials = user.AvatarInitials ?? ComputeInitials(user.Name),
-                PasswordHash = hashedPassword,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            await _context.Users.AddAsync(newUser);
+            await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
-            return newUser;
+            return user;
         }
         
         // Updating user
-        public async Task<User?> UpdateUserAsync(Guid id, UpdateUserRequestDto user)
+        public async Task<User?> UpdateUserAsync(User user)
         {
-            var existingUser = await GetUserByIdAsync(id);
-            if (existingUser == null)
-            {
-                return null;
-            }
-
-            existingUser.Name = user.Name ?? existingUser.Name;
-            existingUser.Title = user.Title ?? existingUser.Title;
-            existingUser.AvatarUrl = user.AvatarUrl ?? existingUser.AvatarUrl;
-            existingUser.AvatarPublicId = user.AvatarPublicId ?? existingUser.AvatarPublicId;
-            existingUser.UpdatedAt = DateTime.UtcNow;
-
-            _context.Users.Update(existingUser);
+            _context.Users.Update(user);
             await _context.SaveChangesAsync();
-            return existingUser;
+            return user;
         }
 
         // Deleting user

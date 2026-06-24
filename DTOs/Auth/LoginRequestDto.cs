@@ -11,4 +11,10 @@ namespace TaskFlowBackend.DTOs.Auth
         [Required(ErrorMessage = "Password is required.")]
         public string Password { get; set; } = string.Empty;
     }
+
+    public class RefreshTokenRequestDTO
+    {
+        [Required(ErrorMessage = "Refresh token is required.")]
+        public string RefreshToken {get; set;} = string.Empty;
+    }
 }

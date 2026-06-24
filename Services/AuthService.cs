@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TaskFlowBackend.Data;
+using TaskFlowBackend.DTOs;
 using TaskFlowBackend.DTOs.Auth;
 using TaskFlowBackend.DTOs.Users;
 using TaskFlowBackend.Helpers.API;
@@ -14,11 +15,15 @@ namespace TaskFlowBackend.Services
     {
         private readonly ITokenService _tokenService;
         private readonly IUserRepository _userRepo;
+        private readonly IUserService _userService;
+        private readonly IRedisCacheService _redisCache;
 
-        public AuthService(ITokenService tokenService, IUserRepository userRepo)
+        public AuthService(ITokenService tokenService, IUserRepository userRepo, IUserService userService, IRedisCacheService redisCache)
         {
             _tokenService = tokenService;
             _userRepo = userRepo;
+            _userService = userService;
+            _redisCache = redisCache;
         }
 
         public async Task<User?> SignupAsync(SignupRequestDto dto)
@@ -38,7 +43,7 @@ namespace TaskFlowBackend.Services
                 Password = dto.Password
             };
 
-            var resp = await _userRepo.CreateUserAsync(newUser);
+            var resp = await _userService.CreateUser(newUser);
 
             return resp;
         }
@@ -63,6 +68,17 @@ namespace TaskFlowBackend.Services
             // Generate Refresh Token
             string refreshToken = _tokenService.GenerateRefreshToken();
 
+            // Store refresh token in redis
+            string key = $"refresh_token:{refreshToken}";
+            RedisTokenValueDTO value = new RedisTokenValueDTO
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                CreatedAt = DateTime.UtcNow,
+                DeviceInfo = "desktop"
+            };
+            await _redisCache.SetAsync<RedisTokenValueDTO>(key, value, TimeSpan.FromDays(7));
+
             var result = new AuthResponseDto
             {
                 Token = accessToken,
@@ -70,6 +86,12 @@ namespace TaskFlowBackend.Services
             };
 
             return result;
+        }
+
+        public async Task<string?> RefreshAsync(string refreshToken)
+        {
+            string newAccessToken = await _tokenService.GenerateNewAccessToken(refreshToken) ?? "";
+            return newAccessToken;
         }
     }
 }
