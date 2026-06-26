@@ -81,11 +81,15 @@ builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 
 // ==== Repository Services ====
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
+builder.Services.AddScoped<IWorkspaceMemberRepository, WorkspaceMemberRepository>();
+builder.Services.AddScoped<IWorkspaceInvitationRepository, WorkspaceInvitationRepository>();
 
 // ==== APP Services ====
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 
 
 builder.Services.AddControllers()
