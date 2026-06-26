@@ -10,6 +10,7 @@ namespace TaskFlowBackend.Helpers.API
         public string DevMessage { get; set; } = "";
         public string RequestId { get; set; } = "";
         public string Timestamp { get; set; } = DateTime.UtcNow.ToString("o");
+        public string Source {get; set;} = "Dotnet Application";
 
         public static ApiResponse<T> Success(T result, string message = "", int code = 200, string requestId = "")
         {
@@ -19,8 +20,11 @@ namespace TaskFlowBackend.Helpers.API
                 Code = code,
                 Result = result,
                 Message = message,
+                Errors = new List<ApiError>(),
+                DevMessage = "",
                 RequestId = requestId,
-                Timestamp = DateTime.UtcNow.ToString("o")
+                Timestamp = DateTime.UtcNow.ToString("o"),
+                Source = "Dotnet 8.0.0 web api"
             };
         }
 
@@ -36,7 +40,8 @@ namespace TaskFlowBackend.Helpers.API
                 Errors = errors ?? new List<ApiError>(),
                 DevMessage = devMessage,
                 RequestId = requestId,
-                Timestamp = DateTime.UtcNow.ToString("o")
+                Timestamp = DateTime.UtcNow.ToString("o"),
+                Source = "Dotnet 8.0.0 web api"
             };
         }
     }

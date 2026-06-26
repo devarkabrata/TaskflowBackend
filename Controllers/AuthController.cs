@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using TaskFlowBackend.DTOs.Auth;
 using TaskFlowBackend.Helpers.API;
+using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Services.Interfaces;
 
 namespace TaskFlowBackend.Controllers
@@ -48,6 +50,12 @@ namespace TaskFlowBackend.Controllers
         public async Task<ApiResponse<AuthResponseDto>> Refresh([FromBody] RefreshTokenRequestDTO dto)
         {
             var result = await _authService.RefreshAsync(dto.RefreshToken);
+
+            if(result.IsNullOrEmpty())
+            {
+                throw new NotFoundException("Refresh token not found");
+            }
+
             AuthResponseDto response = new AuthResponseDto
             {
                 Token = result ?? "",

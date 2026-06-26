@@ -7,9 +7,12 @@ using System.Text.Json;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Data;
 using TaskFlowBackend.Middleware;
+using TaskFlowBackend.Repository;
+using TaskFlowBackend.Repository.Interfaces;
 using TaskFlowBackend.Services;
 using TaskFlowBackend.Services.Interfaces;
 using StackExchange.Redis;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,12 +74,45 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Services
-builder.Services.AddScoped<RedisCacheService>();
+// ========== Services ==========
+
+// ==== DB Service ====
+builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+
+// ==== Repository Services ====
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+// ==== APP Services ====
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
-builder.Services.AddControllers();
+
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .SelectMany(e => e.Value!.Errors.Select(err => new ApiError
+                {
+                    Field = e.Key,
+                    Code = "ValidationError",
+                    Message = err.ErrorMessage
+                }))
+                .ToList();
+
+            var response = ApiResponse<object>.Failure(
+                message: "Validation failed.",
+                code: 422,
+                errors: errors,
+                requestId: context.HttpContext.TraceIdentifier
+            );
+
+            return new UnprocessableEntityObjectResult(response);
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 
 // Swagger with Bearer token support

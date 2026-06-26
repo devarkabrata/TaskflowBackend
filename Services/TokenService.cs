@@ -38,10 +38,7 @@ namespace TaskFlowBackend.Services
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Name, user.Name),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString(), ClaimValueTypes.Integer64),
-                new Claim(JwtRegisteredClaimNames.Aud, jwtSettings["Audience"] ?? string.Empty),
-                new Claim(JwtRegisteredClaimNames.Iss, jwtSettings["Issuer"] ?? string.Empty),
-                new Claim(JwtRegisteredClaimNames.Exp, DateTime.UtcNow.AddMinutes(expiry).ToString(), ClaimValueTypes.Integer64),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
                 new Claim("avatarUrl", user.AvatarUrl ?? string.Empty),
                 new Claim("title", user.Title ?? string.Empty)
             };
