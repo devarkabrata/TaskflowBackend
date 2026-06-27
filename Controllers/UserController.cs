@@ -58,8 +58,20 @@ namespace TaskFlowBackend.Controllers
                 Title = result.Title,
                 AvatarInitials = result.AvatarInitials,
                 AvatarUrl = result.AvatarUrl,
-                Workspaces = result.OwnedWorkspaces,
-                Teams = result.AdminTeams
+                Workspaces = result.OwnedWorkspaces.Select(w => new UserWorkspaceMembershipDto
+                {
+                    WorkspaceId = w.Id,
+                    Name = w.Name,
+                    Role = w.OwnerId == result.Id ? "owner" : "member",
+                    Status = "active",
+                }).ToList(),
+                Teams = result.AdminTeams.Select(t => new UserTeamMembershipDto
+                {
+                    TeamId = t.Id,
+                    TeamName = t.Name,
+                    WorkspaceId = t.WorkspaceId,
+                    Role = "admin",
+                }).ToList()
             };
 
             return ApiResponse<UserResponseDto>.Success(response, "User fetched successfully.");

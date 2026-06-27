@@ -1,5 +1,3 @@
-using TaskFlowBackend.Models;
-
 namespace TaskFlowBackend.DTOs.Users
 {
     public class UserResponseDto
@@ -10,8 +8,7 @@ namespace TaskFlowBackend.DTOs.Users
         public string Title { get; set; } = string.Empty;
         public string AvatarInitials { get; set; } = string.Empty;
         public string? AvatarUrl { get; set; }
-
-        public ICollection<Workspace>? Workspaces {get; set;} = [];
-        public ICollection<Team>? Teams {get; set;} = [];
+        public List<UserWorkspaceMembershipDto> Workspaces { get; set; } = new();
+        public List<UserTeamMembershipDto> Teams { get; set; } = new();
     }
 }

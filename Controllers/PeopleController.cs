@@ -67,5 +67,14 @@ namespace TaskFlowBackend.Controllers
             await _workspaceService.RemoveMemberAsync(userId, targetUserId);
             return ApiResponse<object>.Success(null!, "Member removed successfully.");
         }
+
+        [HttpPost("enlist")]
+        public async Task<ApiResponse<List<Guid>>> EnlistMembers([FromBody] BulkPeopleEnlistToWorkspaceDTO userIds)
+        {
+            Guid userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            var workspace = await _workspaceService.GetWorkspaceOrThrowAsync(userId);
+            var result = await _workspaceService.AddMembersToWorkspaceAsync(workspace.Id, userIds.UserIds);
+            return ApiResponse<List<Guid>>.Success(result, "Members enlisted successfully.");
+        }
     }
 }

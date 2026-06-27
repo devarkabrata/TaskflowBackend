@@ -27,7 +27,8 @@ namespace TaskFlowBackend.Data.Fluent
                 entity.Property(ti => ti.Role)
                     .IsRequired()
                     .HasConversion<string>()
-                    .HasDefaultValue(TeamRole.Developer);
+                    .HasDefaultValue(TeamRole.Developer)
+                    .HasSentinel((TeamRole)(-1));
 
                 entity.Property(ti => ti.Status)
                     .IsRequired()
@@ -70,7 +71,8 @@ namespace TaskFlowBackend.Data.Fluent
                 entity.Property(tm => tm.Role)
                     .IsRequired()
                     .HasConversion<string>()
-                    .HasDefaultValue(TeamRole.Developer);
+                    .HasDefaultValue(TeamRole.Developer)
+                    .HasSentinel((TeamRole)(-1));
 
                 entity.Property(tm => tm.JoinedAt)
                     .IsRequired()
@@ -198,7 +200,8 @@ namespace TaskFlowBackend.Data.Fluent
                 entity.Property(wm => wm.Status)
                     .IsRequired()
                     .HasConversion<string>()
-                    .HasDefaultValue(WorkspaceMemberStatus.Pending);
+                    .HasDefaultValue(WorkspaceMemberStatus.Pending)
+                    .HasSentinel((WorkspaceMemberStatus)(-1));
 
                 // Nullable — null until invite is accepted
                 entity.Property(wm => wm.JoinedAt);

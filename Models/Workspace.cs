@@ -13,5 +13,6 @@ namespace TaskFlowBackend.Models
         public ICollection<WorkspaceMember> Members { get; set; } = new List<WorkspaceMember>();
         public ICollection<WorkspaceInvitation> Invitations { get; set; } = new List<WorkspaceInvitation>();
         public ICollection<Team> Teams { get; set; } = new List<Team>();
+
     }
 }

@@ -13,5 +13,6 @@ namespace TaskFlowBackend.Services.Interfaces
         Task<(WorkspaceInvitationResponseDto dto, bool isNew)> InviteAsync(Guid requestingUserId, string email);
         Task<PeopleListItemDto> UpdateMemberAsync(Guid requestingUserId, Guid targetUserId, UpdateMemberRequestDto dto);
         Task RemoveMemberAsync(Guid requestingUserId, Guid targetUserId);
+        Task<Workspace> GetWorkspaceOrThrowAsync(Guid userId);
     }
 }

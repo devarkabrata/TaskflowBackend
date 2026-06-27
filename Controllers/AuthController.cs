@@ -30,7 +30,7 @@ namespace TaskFlowBackend.Controllers
         {
             var result = await _authService.SignupAsync(dto);
 
-            SignupResponseDto response = new SignupResponseDto
+            var response = new SignupResponseDto
             {
                 Id = result!.Id,
                 Name = result.Name,
@@ -56,12 +56,10 @@ namespace TaskFlowBackend.Controllers
         {
             var result = await _authService.RefreshAsync(dto.RefreshToken);
 
-            if(result.IsNullOrEmpty())
-            {
+            if (result.IsNullOrEmpty())
                 throw new NotFoundException("Refresh token not found");
-            }
 
-            AuthResponseDto response = new AuthResponseDto
+            var response = new AuthResponseDto
             {
                 Token = result ?? "",
                 RefreshToken = dto.RefreshToken
@@ -73,20 +71,40 @@ namespace TaskFlowBackend.Controllers
         [HttpGet("me")]
         public async Task<ApiResponse<UserResponseDto>> GetUserById()
         {
-            var id = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-            
+            var subClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            if (string.IsNullOrEmpty(subClaim))
+                throw new UnauthorizedException("Invalid or missing token claims.");
+
+            var id = Guid.Parse(subClaim);
             var result = await _userService.GetUser(id);
+
+            if (result == null)
+                throw new NotFoundException("User not found.");
 
             var response = new UserResponseDto
             {
-                Id = result!.Id,
+                Id = result.Id,
                 Name = result.Name,
                 Email = result.Email,
-                Title = result.Title,
-                AvatarInitials = result.AvatarInitials,
+                Title = result.Title ?? "",
+                AvatarInitials = result.AvatarInitials ?? "",
                 AvatarUrl = result.AvatarUrl,
-                Workspaces = result.OwnedWorkspaces,
-                Teams = result.AdminTeams
+                Workspaces = result.WorkspaceMemberships?.Select(wm => new UserWorkspaceMembershipDto
+                {
+                    WorkspaceId = wm.WorkspaceId,
+                    Name = wm.Workspace.Name,
+                    Role = wm.Workspace.OwnerId == result.Id ? "owner" : "member",
+                    Status = wm.Status.ToString().ToLower(),
+                    JoinedAt = wm.JoinedAt
+                }).ToList() ?? new(),
+                Teams = result.TeamMemberships?.Select(tm => new UserTeamMembershipDto
+                {
+                    TeamId = tm.TeamId,
+                    TeamName = tm.Team.Name,
+                    WorkspaceId = tm.Team.WorkspaceId,
+                    Role = tm.Role.ToString().ToLower(),
+                    JoinedAt = tm.JoinedAt
+                }).ToList() ?? new()
             };
 
             return ApiResponse<UserResponseDto>.Success(response, "User fetched successfully.");

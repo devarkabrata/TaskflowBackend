@@ -48,8 +48,10 @@ namespace TaskFlowBackend.Repository
         // Getting user by id
         public async Task<User?> GetUserByIdAsync(Guid id)
         {
-            var result = await _context.Users.Include(u => u.OwnedWorkspaces).Include(u => u.AdminTeams).FirstOrDefaultAsync(u => u.Id == id);
-            return result;
+            return await _context.Users
+                .Include(u => u.WorkspaceMemberships).ThenInclude(wm => wm.Workspace)
+                .Include(u => u.TeamMemberships).ThenInclude(tm => tm.Team)
+                .FirstOrDefaultAsync(u => u.Id == id);
         }
 
         // Creating user

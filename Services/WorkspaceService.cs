@@ -210,7 +210,7 @@ namespace TaskFlowBackend.Services
                 throw new NotFoundException("Member or invitation not found in this workspace.");
         }
 
-        private async Task<Workspace> GetWorkspaceOrThrowAsync(Guid userId)
+        public async Task<Workspace> GetWorkspaceOrThrowAsync(Guid userId)
         {
             var workspace = await _workspaceRepo.GetByOwnerIdAsync(userId);
             if (workspace == null)
