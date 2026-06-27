@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TaskFlowBackend.Data;
-using TaskFlowBackend.DTOs.Auth;
-using TaskFlowBackend.DTOs.Users;
+using TaskFlowBackend.Helpers.Pagination;
 using TaskFlowBackend.Models;
 using TaskFlowBackend.Repository.Interfaces;
 
@@ -16,6 +15,29 @@ namespace TaskFlowBackend.Repository
             _context = dbcontext;
         }
 
+        // Getting all users
+        public async Task<List<User>> GetAllUsersAsync(string? search = null, PaginationParams? paginationParams = null)
+        {
+            var query = _context.Users.AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(u => u.Name.Contains(search) || u.Email.Contains(search));
+            }
+
+            if(paginationParams == null)
+            {
+                var result = await query.ToListAsync();
+                return result;
+            }
+            else
+            {
+                var result = await query.Skip(paginationParams.Skip).Take(
+                    paginationParams.Limit).ToListAsync();
+                return result;
+            }
+        }
+
         // Getting user by email
         public async Task<User?> GetUserByEmailAsync(string email)
         {
@@ -26,7 +48,7 @@ namespace TaskFlowBackend.Repository
         // Getting user by id
         public async Task<User?> GetUserByIdAsync(Guid id)
         {
-            var result = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var result = await _context.Users.Include(u => u.OwnedWorkspaces).Include(u => u.AdminTeams).FirstOrDefaultAsync(u => u.Id == id);
             return result;
         }
 

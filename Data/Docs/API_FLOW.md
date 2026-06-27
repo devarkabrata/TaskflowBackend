@@ -1,6 +1,8 @@
 # Taskflow Backend — API Flow Reference
 
-> Synthesized from `APIRequirements/`. This is the backend team's single navigable view of the full API contract before any implementation begins.
+> This document reflects the **actual implemented architecture**. It is the backend team's single navigable view of the full API contract.
+>
+> Last updated: 2026-06-27
 
 ---
 
@@ -34,39 +36,29 @@
 | Layer | Technology |
 |---|---|
 | Framework | ASP.NET Core 8.0 |
-| Primary DB | PostgreSQL — structured, relational, transactional data |
-| Secondary DB | MongoDB Atlas — flexible, document-oriented, append-only data |
-| Auth | Cookie-based sessions (no Authorization header) |
+| Primary DB | PostgreSQL (Supabase) — structured, relational, transactional data |
+| Cache / Session | Redis (Upstash) via StackExchange.Redis — refresh token storage |
+| Auth | JWT Bearer token (`Authorization: Bearer <token>`) + refresh token |
 | Image Storage | Cloudinary (client-side signed upload; URLs stored in DB) |
-| API Style | REST, JSON, standard response envelope on every endpoint |
+| API Style | REST, JSON, standard `ApiResponse<T>` envelope on every endpoint |
 
 ### Service Map
 
 11 service groups, all rooted at `/api/*`:
 
-| # | Service | Base Path | Database | Auth Required |
-|---|---|---|---|---|
-| 1 | Auth | `/api/auth` | PostgreSQL | Mixed (Public + Auth) |
-| 2 | Task | `/api/tasks` | PostgreSQL | Auth |
-| 3 | Board | `/api/board` | PostgreSQL | Auth |
-| 4 | People / Workspace | `/api/people` | PostgreSQL | Auth |
-| 5 | Team | `/api/teams` | PostgreSQL | Auth |
-| 6 | Dashboard | `/api/dashboard` | PostgreSQL (computed) | Auth |
-| 7 | User | `/api/users` | PostgreSQL | Auth |
-| 8 | Project | `/api/projects` | PostgreSQL | Auth |
-| 9 | Activity | `/api/activity` | MongoDB | Auth |
-| 10 | Notification | `/api/notifications` | MongoDB | Auth |
-| 11 | User Preferences | `/api/preferences` | MongoDB | Auth |
-
-### Database Assignment Rule
-
-```
-New service — ask:
-  ├─ Has foreign keys to users or tasks?          → PostgreSQL
-  ├─ Needs a transaction spanning multiple tables? → PostgreSQL
-  ├─ Append-only event stream?                    → MongoDB
-  └─ Per-user settings blob (variable shape)?     → MongoDB
-```
+| # | Service | Base Path | Database | Auth Required | Status |
+|---|---|---|---|---|---|
+| 1 | Auth | `/api/auth` | PostgreSQL + Redis | Mixed | **Done** |
+| 2 | Task | `/api/tasks` | PostgreSQL | Auth | Pending |
+| 3 | Board | `/api/board` | PostgreSQL | Auth | Pending |
+| 4 | People / Workspace | `/api/people` | PostgreSQL | Auth | **Done** |
+| 5 | Team | `/api/teams` | PostgreSQL | Auth | Pending |
+| 6 | Dashboard | `/api/dashboard` | PostgreSQL (computed) | Auth | Pending |
+| 7 | User | `/api/users` | PostgreSQL | Auth | Pending |
+| 8 | Project | `/api/projects` | PostgreSQL | Auth | Pending |
+| 9 | Activity | `/api/activity` | MongoDB | Auth | Deferred |
+| 10 | Notification | `/api/notifications` | MongoDB | Auth | Deferred |
+| 11 | User Preferences | `/api/preferences` | MongoDB | Auth | Deferred |
 
 ---
 
@@ -74,61 +66,59 @@ New service — ask:
 
 ### Mechanism
 
-Cookie-based session. No JWT in `Authorization` headers. The Shell sets cookies on the shared domain; all MFE zones receive them automatically on every request.
+JWT Bearer token. All protected endpoints require:
+```
+Authorization: Bearer <accessToken>
+```
 
-### Cookie Spec
+Tokens are issued on login. Access token lifetime: **60 minutes**. Refresh token lifetime: **7 days** (stored in Redis).
 
-Four cookies set on every successful `login` or `signup`:
+### Token Pair
 
-| Cookie | HttpOnly | JS-readable | Purpose |
+| Token | TTL | Storage | Purpose |
 |---|---|---|---|
-| `taskflow_session` | Yes | No | Session token — auth gating across all zones |
-| `taskflow_name` | No | Yes | Display name — Sidebar workspace indicator + user card |
-| `taskflow_email` | No | Yes | Email — Sidebar user card |
-| `taskflow_title` | No | Yes | Designation — People listing, Settings profile |
+| Access token (JWT) | 60 min | Client memory / localStorage | Auth gating on every request |
+| Refresh token (opaque, 32-byte Base64) | 7 days | Redis (`refresh_token:{token}` key) | Obtain new access token without re-login |
 
-All cookies: `Path=/; SameSite=Lax; Secure=true (production); Domain=.taskflow.app`
-`taskflow_session` Max-Age: `604800` (7 days, sliding).
+### JWT Claims
+
+| Claim | Value |
+|---|---|
+| `sub` | User UUID |
+| `email` | User email |
+| `name` | User display name |
+| `jti` | Unique token ID |
+| `iat` | Unix timestamp (integer) |
+| `avatarUrl` | Cloudinary URL or empty string |
+| `title` | User job title or empty string |
+| `iss`, `aud`, `exp` | Set by `JwtSecurityToken` constructor — never add manually |
 
 ### Login Flow
 
 ```
-Browser  →  POST /api/auth/login  { email, password }
-         ←  200 + Set-Cookie: taskflow_session=...
-                    taskflow_name=...
-                    taskflow_email=...
-                    taskflow_title=...
-         ←  { user: { id, name, email, title, avatarInitials } }
+Client  →  POST /api/auth/login  { email, password }
+        ←  200 { token, refreshToken }
 
-All subsequent requests carry cookies automatically.
+Client sends on every protected request:
+        →  Authorization: Bearer <token>
+        ←  200 ...
+
+When token expires:
+        →  PATCH /api/auth/refresh  { refreshToken }
+        ←  200 { token, refreshToken }
 ```
 
-### Logout Flow
+### Redis Refresh Token
 
-```
-Browser  →  POST /api/auth/logout
-         ←  200 + Set-Cookie: taskflow_session=; Max-Age=0  (clears all 4 cookies)
-```
-
-### Internal Session Verification (Microservice Pattern)
-
-Each downstream service validates the cookie using one of two patterns:
-
-```
-Option A — network call:
-  Task Service  →  GET /api/auth/verify  (internal, not browser-exposed)
-                   Forwards Cookie header
-                ←  200 { userId, email }  |  401
-
-Option B — shared JWT secret:
-  Each service verifies the session token locally — no network hop.
-```
+Key: `refresh_token:{token}`
+Value: `{ userId, email, createdAt, deviceInfo }`
+TTL: 7 days. Deleted/replaced on refresh.
 
 ---
 
 ## 3. Standard Response Envelope
 
-Every endpoint — success or failure — returns the same JSON wrapper.
+Every endpoint — success or failure — returns `ApiResponse<T>` serialized as camelCase JSON.
 
 ### Success (single object)
 
@@ -139,9 +129,10 @@ Every endpoint — success or failure — returns the same JSON wrapper.
   "result": { "id": "uuid", "...": "..." },
   "message": "Task updated successfully.",
   "errors": [],
-  "dev_message": "",
-  "requestId": "req_01J3K9X2M4N5P6Q7R8S9T0",
-  "timestamp": "2026-06-11T10:00:00.000Z"
+  "devMessage": "",
+  "requestId": "trace-id",
+  "timestamp": "2026-06-27T00:00:00.000Z",
+  "source": "Dotnet 8.0.0 web api"
 }
 ```
 
@@ -161,9 +152,10 @@ Every endpoint — success or failure — returns the same JSON wrapper.
   },
   "message": "",
   "errors": [],
-  "dev_message": "",
-  "requestId": "req_01J3K9X2M4N5P6Q7R8S9T0",
-  "timestamp": "2026-06-11T10:00:00.000Z"
+  "devMessage": "",
+  "requestId": "trace-id",
+  "timestamp": "2026-06-27T00:00:00.000Z",
+  "source": "Dotnet 8.0.0 web api"
 }
 ```
 
@@ -176,12 +168,13 @@ Every endpoint — success or failure — returns the same JSON wrapper.
   "result": null,
   "message": "Validation failed.",
   "errors": [
-    { "field": "email",   "code": "INVALID_FORMAT", "message": "Enter a valid email address." },
-    { "field": "dueDate", "code": "REQUIRED",        "message": "Due date is required."        }
+    { "field": "email", "code": "INVALID_FORMAT", "message": "Enter a valid email address." },
+    { "field": "dueDate", "code": "REQUIRED",      "message": "Due date is required." }
   ],
-  "dev_message": "ValidationError thrown at TaskService.create() — only outside production",
-  "requestId": "req_01J3K9X2M4N5P6Q7R8S9T0",
-  "timestamp": "2026-06-11T10:00:00.000Z"
+  "devMessage": "ValidationException thrown at AuthService.SignupAsync()",
+  "requestId": "trace-id",
+  "timestamp": "2026-06-27T00:00:00.000Z",
+  "source": "Dotnet 8.0.0 web api"
 }
 ```
 
@@ -193,24 +186,23 @@ Every endpoint — success or failure — returns the same JSON wrapper.
 | `code` | `number` | Mirrors the HTTP status code |
 | `result` | `object \| null` | The payload. `null` on any failure — never absent |
 | `message` | `string` | User-displayable string. `""` if nothing to show |
-| `errors` | `array` | `[]` on success. Each item: `{ field?, code, message }` |
-| `dev_message` | `string` | Stack trace / internal detail. Always `""` in production |
-| `requestId` | `string` | Unique request ID — use to correlate logs across services |
-| `timestamp` | `string` | ISO 8601 UTC — when the response was generated |
+| `errors` | `array` | `[]` on success. Each item: `{ field, code, message }` |
+| `devMessage` | `string` | Internal detail. Always `""` in production |
+| `requestId` | `string` | `HttpContext.TraceIdentifier` — correlates logs |
+| `timestamp` | `string` | ISO 8601 UTC |
+| `source` | `string` | Always `"Dotnet 8.0.0 web api"` |
 
 ### Standard HTTP Error Codes
 
 | Code | When |
 |---|---|
 | `400` | Malformed request body / bad JSON |
-| `401` | No session cookie or expired session |
-| `403` | Valid session but insufficient permissions |
+| `401` | Missing or invalid Bearer token |
+| `403` | Valid token but insufficient permissions |
 | `404` | Resource not found |
 | `409` | Conflict — duplicate invite, duplicate email |
 | `422` | Validation failed — `errors[]` populated |
-| `429` | Rate limit exceeded |
 | `500` | Unexpected server error |
-| `502` | Upstream service unreachable (API gateway) |
 
 ---
 
@@ -220,39 +212,82 @@ Every endpoint — success or failure — returns the same JSON wrapper.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/signup` | Public | Register → sets session cookies |
-| POST | `/api/auth/login` | Public | Email + password → sets session cookies |
-| POST | `/api/auth/logout` | Auth | Clears all session cookies |
-| GET | `/api/auth/me` | Auth | Returns current user with workspace + team memberships |
+| POST | `/api/auth/signup` | Public | Register — creates user + default workspace |
+| POST | `/api/auth/login` | Public | Email + password → token pair |
+| PATCH | `/api/auth/refresh` | Public | Exchange refresh token for new access token |
 
 #### `POST /api/auth/signup`
-**Request:** `{ name, email, password, title? }`
-`title` = resolved designation (if user picked "Other", send the free-text value here).
-**Response `201`:** `{ ok: true, user: { id, name, email, title, avatarInitials } }` + sets 4 cookies.
-**Error `409`:** email already registered.
 
-#### `POST /api/auth/login`
-**Request:** `{ email, password }`
-**Response `200`:** `{ user: { id, name, email, title, avatarInitials } }` + sets 4 cookies.
+**Request**
+```json
+{ "name": "string", "email": "string", "password": "string", "title": "string (optional)" }
+```
 
-#### `GET /api/auth/me`
-**Response `200`:**
+**Response `201`**
 ```json
 {
-  "id": "uuid",
-  "name": "string",
-  "email": "string",
-  "title": "string",
-  "avatarInitials": "AC",
-  "avatarUrl": null,
-  "workspaces": [{ "workspaceId": "ws_1", "role": "owner", "status": "active", "joinedAt": "..." }],
-  "teams": [
-    { "teamId": "team_1", "workspaceId": "ws_1", "role": "admin",     "joinedAt": "..." },
-    { "teamId": "team_2", "workspaceId": "ws_1", "role": "developer", "joinedAt": "..." }
-  ]
+  "result": {
+    "id": "uuid",
+    "name": "Alice Smith",
+    "email": "alice@example.com",
+    "title": "Engineer",
+    "avatarInitials": "AS"
+  }
 }
 ```
-`workspaces[]` and `teams[]` are the authoritative membership arrays — all access control decisions derive from these.
+
+Side effects:
+- Password BCrypt-hashed before storage
+- Default workspace created (`"{name}'s Workspace"`)
+- User added to workspace as active member
+
+**Error `409`** — email already registered (`EMAIL_TAKEN`)
+**Error `422`** — validation failure
+
+---
+
+#### `POST /api/auth/login`
+
+**Request**
+```json
+{ "email": "string", "password": "string" }
+```
+
+**Response `200`**
+```json
+{
+  "result": {
+    "token": "eyJhbGci...",
+    "refreshToken": "base64-opaque-string",
+    "user": null
+  }
+}
+```
+
+Refresh token stored in Redis with 7-day TTL.
+
+**Error `401`** — email not found or wrong password
+
+---
+
+#### `PATCH /api/auth/refresh`
+
+**Request**
+```json
+{ "refreshToken": "base64-opaque-string" }
+```
+
+**Response `200`**
+```json
+{
+  "result": {
+    "token": "eyJhbGci...",
+    "refreshToken": "base64-opaque-string"
+  }
+}
+```
+
+**Error `404`** — refresh token not found or expired in Redis
 
 ---
 
@@ -268,20 +303,19 @@ Drives the **Task MFE** (`mfe-task`).
 | PATCH | `/api/tasks/:id` | Auth | Update task fields (partial) |
 | DELETE | `/api/tasks/:id` | Auth | Soft-delete task |
 | GET | `/api/tasks/stats` | Auth | Aggregate counts by status |
-| PATCH | `/api/tasks/:id/status` | Auth | Drag-drop: change task status (Board MFE) |
+| PATCH | `/api/tasks/:id/status` | Auth | Drag-drop: change task status |
 
 #### Query Params for `GET /api/tasks`
 
 ```
-statusId=stat_1          — filter by status (only meaningful with teamId)
-priority=high|medium|low — filter by priority
-teamId=team_1|team_2     — omit for "My Tasks" view
+statusId=stat_1
+priority=high|medium|low
+teamId=team_1
 assigneeId=uuid
-projectId=uuid
-sprintId=uuid
 page=1&limit=20
 ```
-Soft-deleted tasks (`deleted_at IS NOT NULL`) are always excluded.
+
+Soft-deleted tasks (`deletedAt IS NOT NULL`) are always excluded.
 
 #### `GET /api/tasks/stats` Response
 ```json
@@ -294,35 +328,27 @@ Soft-deleted tasks (`deleted_at IS NOT NULL`) are always excluded.
   "title": "string",
   "description": "<p>rich-text body</p>",
   "priority": "high",
-  "statusId": "stat_1",
+  "statusId": "uuid",
   "label": "feature",
   "assigneeId": "uuid",
-  "teamId": "team_1",
+  "teamId": "uuid",
   "expectedCompletion": "2026-06-20",
   "progress": 0,
-  "imageUrls": ["https://res.cloudinary.com/..."],
-  "projectId": "uuid (optional)",
-  "sprintId": "uuid (optional)"
+  "imageUrls": ["https://res.cloudinary.com/..."]
 }
 ```
-Image upload happens client → Cloudinary (signed upload). Returned secure URLs are passed in `imageUrls`.
 
-#### `PATCH /api/tasks/:id` — Partial update
+#### `PATCH /api/tasks/:id/status`
 ```json
-{ "statusId": "stat_3", "progress": 80 }
+{ "statusId": "uuid" }
 ```
-
-#### `PATCH /api/tasks/:id/status` — Drag-drop
-```json
-{ "statusId": "stat_2" }
-```
-**`403`** if a `developer` attempts to move a task they do not own.
+**`403`** if a `developer` attempts to move a task they don't own.
 
 ---
 
 ### 4.3 Board Service — `/api/board`
 
-Drives the **Board MFE** (`mfe-board`). Statuses are dynamic per team.
+Drives the **Board MFE** (`mfe-board`).
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -330,32 +356,22 @@ Drives the **Board MFE** (`mfe-board`). Statuses are dynamic per team.
 | GET | `/api/board/:teamId/status/:statusId/tasks` | Auth | Load more tasks for one column |
 | POST | `/api/board/:teamId/statuses` | Auth | Create a status column (admin / pm) |
 | PATCH | `/api/board/:teamId/statuses/:statusId` | Auth | Edit a status (admin / pm / tl) |
-| DELETE | `/api/board/:teamId/statuses/:statusId` | Auth | Delete status; soft-deletes its tasks (admin / pm / tl) |
+| DELETE | `/api/board/:teamId/statuses/:statusId` | Auth | Delete status; soft-deletes its tasks |
 
 #### `GET /api/board/:teamId` Response
 ```json
 {
   "statuses": [
-    { "id": "stat_1", "name": "Backlog", "description": "Not yet started", "position": 0, "totalTasks": 8, "tasks": [ /* up to 5 */ ] },
-    { "id": "stat_2", "name": "In Progress", "description": null, "position": 1, "totalTasks": 3, "tasks": [ /* up to 5 */ ] }
+    { "id": "uuid", "name": "Backlog", "description": "Not yet started", "position": 0, "totalTasks": 8, "tasks": [] },
+    { "id": "uuid", "name": "In Progress", "description": null, "position": 1, "totalTasks": 3, "tasks": [] }
   ]
 }
 ```
 
-#### Load More — `GET /api/board/:teamId/status/:statusId/tasks`
-Query: `page=2&limit=10`
-Response: paginated envelope (`data`, `count`, `total`, `page`, `limit`, `totalPages`).
-
-#### `POST /api/board/:teamId/statuses`
-```json
-{ "name": "Code Review", "description": "Awaiting PR approval" }
-```
-New status `position = max + 1`. **`403`** if caller is not `admin` or `pm`.
-
 #### `DELETE /api/board/:teamId/statuses/:statusId`
 Soft-deletes all tasks in the column.
 **`422`** if this is the team's last remaining status.
-Response: `{ "ok": true, "softDeletedTaskCount": 8 }`
+Response: `{ "softDeletedTaskCount": 8 }`
 
 #### Role Restrictions (Board)
 
@@ -364,47 +380,136 @@ Response: `{ "ok": true, "softDeletedTaskCount": 8 }`
 | Create status | admin, pm |
 | Edit status | admin, pm, tl |
 | Delete status | admin, pm, tl |
-| Drag-drop own task | all (developer only their own) |
+| Drag-drop own task | all (developer: only their own) |
 | Drag-drop any task | admin, pm, tl |
 
 ---
 
 ### 4.4 People / Workspace Service — `/api/people`
 
-Drives the **Shell** — `PeopleScreen`. Manages workspace-level member directory (distinct from team-scoped `/api/teams/:id/members`).
+Drives the **Shell** `PeopleScreen`. Manages workspace-level member directory (active members + pending invitations). Distinct from `/api/teams/:id/members` which is team-scoped.
+
+Workspace ID is always resolved server-side from the JWT `sub` claim — clients never send a workspace ID.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/api/people` | Auth | List all workspace members (active + pending) |
+| GET | `/api/people` | Auth | Paginated list of active members + pending invitations |
 | GET | `/api/people/stats` | Auth | Aggregate counts (total, active, pending, teams) |
 | POST | `/api/people/invite` | Auth | Invite someone to the workspace by email |
-| PATCH | `/api/people/:userId` | Auth | Update member title / role |
-| DELETE | `/api/people/:userId` | Auth | Remove member from workspace (and all teams) |
+| PATCH | `/api/people/:userId` | Auth | Update member title |
+| DELETE | `/api/people/:userId` | Auth | Remove member or cancel pending invitation |
 
 #### Query Params for `GET /api/people`
+
 ```
-teamId=team_1          — filter by team membership
-status=active|pending  — filter by status
-search=string          — name or email substring
-page=1&limit=50
+teamId=uuid           — filter by team membership (active members only)
+status=active|pending — filter by status (default: both)
+search=string         — name or email substring
+page=1&limit=20
 ```
 
-#### `GET /api/people/stats` Response
+#### `GET /api/people` Response `200`
+
 ```json
-{ "totalMembers": 5, "active": 4, "pendingInvites": 1, "totalTeams": 3 }
+{
+  "result": {
+    "data": [
+      {
+        "id": "uuid",
+        "name": "Alice Smith",
+        "email": "alice@example.com",
+        "title": "Engineer",
+        "avatarInitials": "AS",
+        "avatarUrl": "https://res.cloudinary.com/...",
+        "teamIds": ["uuid1", "uuid2"],
+        "status": "active"
+      },
+      {
+        "id": "invitation-uuid",
+        "name": "",
+        "email": "bob@external.com",
+        "title": "",
+        "avatarInitials": "",
+        "avatarUrl": null,
+        "teamIds": [],
+        "status": "pending"
+      }
+    ],
+    "count": 2,
+    "total": 25,
+    "page": 1,
+    "limit": 20,
+    "totalPages": 2
+  }
+}
+```
+
+> For pending entries, `id` is the invitation UUID (not a user UUID). Pass this as `:userId` in `DELETE /api/people/:userId` to cancel the invitation.
+
+#### `GET /api/people/stats` Response `200`
+
+```json
+{
+  "result": {
+    "totalMembers": 5,
+    "active": 4,
+    "pendingInvites": 1,
+    "totalTeams": 3
+  }
+}
 ```
 
 #### `POST /api/people/invite`
-**Request:** `{ "email": "colleague@example.com" }`
-**Response `201`:** `{ id, email, status: "pending", expiresAt }` — invitation expires in 7 days.
-**`409`** if already an active member or has a pending invite.
-Re-sending to the same email resets the expiry and returns `200`.
+
+**Request**
+```json
+{ "email": "colleague@example.com" }
+```
+
+**Response `201`** — new invitation
+```json
+{
+  "result": {
+    "id": "uuid",
+    "email": "colleague@example.com",
+    "status": "pending",
+    "expiresAt": "2026-07-04T00:00:00Z"
+  }
+}
+```
+
+**Response `200`** — email already has a pending invite; expiry reset to +7 days from now (resend).
+
+**Error `409`** — email belongs to an existing active member (`ALREADY_MEMBER`)
+
+---
+
+#### `PATCH /api/people/:userId`
+
+**Request** — any subset of updatable fields
+```json
+{ "title": "Senior Engineer" }
+```
+
+**Response `200`** — updated `PeopleListItemDto` (full member object)
+
+**Error `404`** — member not found in workspace
+
+---
+
+#### `DELETE /api/people/:userId`
+
+Handles two cases:
+1. **Active member** — removes `WorkspaceMember` row and strips from all workspace teams
+2. **Pending invitation** — hard-deletes the `WorkspaceInvitation` row (cancel invite)
+
+**Response `200`** — `result: null`
+
+**Error `404`** — neither a member nor a pending invitation with that ID
 
 ---
 
 ### 4.5 Team Service — `/api/teams`
-
-Drives the **Shell** — Teams section.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -419,46 +524,40 @@ Drives the **Shell** — Teams section.
 | DELETE | `/api/teams/:id/members/:userId` | Auth | Remove a member (not from workspace) |
 | PATCH | `/api/teams/:id/members/:userId` | Auth | Change member role |
 
-#### `GET /api/teams/stats` Response
-```json
-{ "totalTeams": 2, "totalMembers": 4, "pendingInvites": 1 }
-```
-
 #### `POST /api/teams` Request
 ```json
 {
   "name": "Frontend Team",
   "description": "optional",
   "color": "#6155DD",
-  "memberIds": [{ "userId": "u2", "role": "developer" }]
+  "memberIds": [{ "userId": "uuid", "role": "developer" }]
 }
 ```
-`color` = required hex from the 8-swatch picker.
-Creator is automatically added as `admin` server-side — do not include in `memberIds`.
-Three default `BoardStatus` rows are seeded on creation: **Backlog** (pos 1), **In Progress** (pos 2), **Done** (pos 3).
+
+`color` — required hex from the 8-swatch picker.
+Creator is automatically added as `admin` server-side.
+Three default `BoardStatus` rows seeded on creation: **Backlog** (pos 1), **In Progress** (pos 2), **Done** (pos 3).
 
 #### `POST /api/teams/:id/invite`
 ```json
 { "email": "colleague@example.com", "role": "developer", "addToWorkspace": false }
 ```
-`addToWorkspace: true` also creates a `workspace_invitation` — invitee joins both on acceptance.
+`addToWorkspace: true` also creates a `workspace_invitation`.
 **`409`** if a pending invite already exists for that email + team.
 
 #### `PATCH /api/teams/:id/members/:userId`
 ```json
 { "role": "pm" }
 ```
-**`422`** if attempting to demote the only `admin` on the team.
+**`422`** if attempting to demote the only `admin`.
 
 #### `DELETE /api/teams/:id/members/:userId`
-Removes from team only — workspace membership untouched. Assignee field on tasks becomes `null`.
+Removes from team only — workspace membership untouched.
 **`422`** if attempting to remove the only `admin`.
 
 ---
 
 ### 4.6 Dashboard Service — `/api/dashboard`
-
-Drives `WelcomeScreen` — the 4-card stats row.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -474,8 +573,6 @@ Drives `WelcomeScreen` — the 4-card stats row.
   "completionRate": 67
 }
 ```
-`totalTasks` = all tasks where `assigneeId` = current user.
-`boardItems` = tasks in the active sprint across all projects.
 
 ---
 
@@ -483,73 +580,53 @@ Drives `WelcomeScreen` — the 4-card stats row.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/api/users` | Auth | List users (used by assignee picker) |
+| GET | `/api/users` | Auth | List users (assignee picker) |
 | GET | `/api/users/:id` | Auth | Get user profile |
 | PATCH | `/api/users/:id` | Auth | Update own profile |
-
-#### `GET /api/users` Response
-```json
-{ "data": [{ "id": "uuid", "name": "Alice Chen", "email": "alice@...", "avatarInitials": "AC" }] }
-```
 
 ---
 
 ### 4.8 Project Service — `/api/projects`
 
+> Deferred from v1 scope.
+
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/api/projects` | Auth | List projects for current user |
+| GET | `/api/projects` | Auth | List projects |
 | POST | `/api/projects` | Auth | Create project |
 | GET | `/api/projects/:id` | Auth | Get project details |
-| GET | `/api/projects/:id/sprints` | Auth | List sprints for a project |
+| GET | `/api/projects/:id/sprints` | Auth | List sprints |
 | POST | `/api/projects/:id/sprints` | Auth | Create sprint |
-| PATCH | `/api/projects/:id/sprints/:sprintId` | Auth | Update sprint (activate, complete) |
-
-> Projects and Sprints are deferred from v1 scope but the endpoints are specified for future implementation.
+| PATCH | `/api/projects/:id/sprints/:sprintId` | Auth | Update sprint |
 
 ---
 
 ### 4.9 Activity Service — `/api/activity`
 
-Backed by **MongoDB** `activity_logs`. Read-only from the frontend.
+> Backed by MongoDB. Deferred from v1 scope.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/api/activity` | Auth | Recent activity feed (current user) |
-| GET | `/api/activity/tasks/:taskId` | Auth | Activity timeline for a specific task |
-
-#### `GET /api/activity/tasks/:taskId` Response
-```json
-{
-  "data": [
-    {
-      "id": "mongo-objectid",
-      "action": "status_changed",
-      "actor": { "id": "uuid", "name": "Alice Chen", "avatarInitials": "AC" },
-      "diff": { "status": { "from": "todo", "to": "in-progress" } },
-      "timestamp": "2026-06-11T10:00:00Z"
-    }
-  ]
-}
-```
+| GET | `/api/activity/tasks/:taskId` | Auth | Activity timeline for a task |
 
 ---
 
 ### 4.10 Notification Service — `/api/notifications`
 
-Backed by **MongoDB** `notifications`.
+> Backed by MongoDB. Deferred from v1 scope.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/api/notifications` | Auth | List unread notifications |
-| PATCH | `/api/notifications/:id/read` | Auth | Mark one notification as read |
+| PATCH | `/api/notifications/:id/read` | Auth | Mark one as read |
 | PATCH | `/api/notifications/read-all` | Auth | Mark all as read |
 
 ---
 
 ### 4.11 User Preferences Service — `/api/preferences`
 
-Backed by **MongoDB** `user_preferences`. One document per user.
+> Backed by MongoDB. Deferred from v1 scope.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
@@ -562,44 +639,36 @@ Backed by **MongoDB** `user_preferences`. One document per user.
 
 ### PostgreSQL Entities
 
-| Entity | Table | PK Strategy | Key Relationships |
-|---|---|---|---|
-| User | `users` | UUID | — |
-| Team | `teams` | UUID | `owner_id → users` |
-| TeamMember | `team_members` | Composite (team_id, user_id) | `team_id → teams`, `user_id → users` |
-| BoardStatus | `board_statuses` | UUID | `team_id → teams`; default 3 rows seeded on team creation |
-| Task | `tasks` | UUID + `task_number` (int, project-scoped) | `team_id → teams`, `status_id → board_statuses`, `assignee_id → users` (nullable) |
-| Label | `labels` | UUID | — (seed data: feature, bug, design, docs, infra, refactor) |
-| TaskLabel | `task_labels` | Composite (task_id, label_id) | join table |
-| Comment | `comments` | UUID | `task_id → tasks`, `author_id → users` |
-| Project | `projects` | UUID | `owner_id → users` |
-| ProjectMember | `project_members` | Composite (project_id, user_id) | — |
-| Sprint | `sprints` | UUID | `project_id → projects` |
-| WorkspaceInvitation | `workspace_invitations` | UUID | `invited_by → users`; UNIQUE on email |
-| TeamInvitation | `invitations` | UUID | `team_id → teams`, `invited_by → users`; UNIQUE on (team_id, email) |
-
-### MongoDB Collections
-
-| Collection | Purpose | Indexes |
+| Entity | Table | Key Relationships |
 |---|---|---|
-| `activity_logs` | Append-only event timeline per entity | `{ entityId, timestamp }`, `{ actorId, timestamp }` |
-| `notifications` | Per-user notification inbox | `{ recipientId, read, createdAt }` |
-| `user_preferences` | Per-user settings blob (`_id` = PostgreSQL `users.id`) | `_id` only |
-| `audit_trail` | Compliance log of all mutating API calls; 90-day TTL | `{ userId, timestamp }`, `{ service, timestamp }`, TTL on `timestamp` |
+| User | `users` | — |
+| Workspace | `workspaces` | `owner_id → users` |
+| WorkspaceMember | `workspace_members` | `workspace_id → workspaces`, `user_id → users` |
+| WorkspaceInvitation | `workspace_invitations` | `workspace_id → workspaces`, `invited_by → users` |
+| Team | `teams` | `workspace_id → workspaces`, `admin_id → users`, `created_by → users` |
+| TeamMember | `team_members` | Composite PK `(team_id, user_id)` |
+| TeamInvitation | `invitations` | `team_id → teams`, `invited_by → users` |
+| BoardStatus | `board_statuses` | `team_id → teams`; 3 rows seeded on team creation |
+| TaskItem | `tasks` | `team_id → teams`, `status_id → board_statuses`; soft-delete via `deleted_at` |
+| Comment | `comments` | `task_id → tasks`, `author_id → users` |
 
-### Core Enums
+### Redis Keys
+
+| Key Pattern | Value | TTL |
+|---|---|---|
+| `refresh_token:{token}` | `{ userId, email, createdAt, deviceInfo }` | 7 days |
+
+### Core Enums (stored as strings in DB)
 
 | Enum | Values |
 |---|---|
-| Priority | `high`, `medium`, `low` |
-| LabelType | `feature`, `bug`, `design`, `docs`, `infra`, `refactor` |
-| TeamRole | `admin`, `pm`, `tl`, `developer` |
-| InvitationStatus | `pending`, `accepted`, `declined`, `expired` |
-| WorkspaceMemberStatus | `active`, `pending` |
+| Priority | `High`, `Medium`, `Low` |
+| LabelType | `Feature`, `Bug`, `Design`, `Docs`, `Infra`, `Refactor` |
+| TeamRole | `Admin`, `PM`, `TL`, `Developer` |
+| InvitationStatus | `Pending`, `Accepted`, `Declined`, `Expired` |
+| WorkspaceMemberStatus | `Active`, `Pending` |
 
 ### v1 Scope Exclusions
-
-The following are intentionally deferred:
 
 | Model | Reason |
 |---|---|
@@ -608,8 +677,6 @@ The following are intentionally deferred:
 | `ActivityLog` | MongoDB — deferred |
 | `Notification` | MongoDB — deferred |
 | `UserPreferences` | MongoDB — deferred |
-| `DashboardStats` | Computed at query time, not persisted |
-| `Session` | Cookie-based, managed server-side |
 
 ---
 
@@ -619,67 +686,57 @@ The following are intentionally deferred:
 
 | Frontend Element | Endpoint |
 |---|---|
-| WelcomeScreen — 4 stat cards (Total Tasks, In Progress, Completed, Board Items) | `GET /api/dashboard/stats` |
-| WelcomeScreen — App showcase cards | Client navigation only |
+| WelcomeScreen — 4 stat cards | `GET /api/dashboard/stats` |
 | TeamsScreen — 3 stat cards | `GET /api/teams/stats` |
 | TeamsScreen — team list | `GET /api/teams` |
-| `/teams/new` — Create Team submit | `POST /api/teams` (includes `color` + `memberIds[]`) |
+| `/teams/new` — Create Team submit | `POST /api/teams` |
 | `/teams/:id` — Edit name / desc / color | `PATCH /api/teams/:id` |
 | `/teams/:id` — Add from workspace | `POST /api/teams/:id/members` |
 | `/teams/:id` — Change member role | `PATCH /api/teams/:id/members/:userId` |
 | `/teams/:id` — Remove member | `DELETE /api/teams/:id/members/:userId` |
 | `/teams/:id` — Delete team | `DELETE /api/teams/:id` |
-| TeamCard — Invite button (TeamInviteModal) | `POST /api/teams/:id/invite` |
+| TeamCard — Invite button | `POST /api/teams/:id/invite` |
 | PeopleScreen — 4 stat cards | `GET /api/people/stats` |
 | PeopleScreen — member list | `GET /api/people` |
 | PeopleScreen — search filter | `GET /api/people?search=...` |
 | PeopleScreen — team filter | `GET /api/people?teamId=...` |
 | PeopleScreen — status filter | `GET /api/people?status=active\|pending` |
 | PeopleScreen — Invite to workspace | `POST /api/people/invite` |
-| PeopleScreen — Resend (pending member) | `POST /api/people/invite` (re-send → 200, resets expiry) |
-| PeopleScreen — Remove (active or pending) | `DELETE /api/people/:userId` |
-| SettingsScreen — Profile read | `GET /api/auth/me` |
+| PeopleScreen — Resend (pending member) | `POST /api/people/invite` → 200, resets expiry |
+| PeopleScreen — Remove (active member) | `DELETE /api/people/:userId` |
+| PeopleScreen — Remove (pending / cancel invite) | `DELETE /api/people/:invitationId` |
 | SettingsScreen — Profile save | `PATCH /api/users/:id` |
 | SettingsScreen — Notification toggles | `PATCH /api/preferences` |
-| Sidebar — user card | `GET /api/auth/me` |
-| Sidebar — workspace indicator | Derived from `taskflow_name` cookie — no API call |
-| Topbar — avatar | `GET /api/auth/me` |
-| Topbar — notification bell | Not yet wired |
 | LoginForm — submit | `POST /api/auth/login` |
 | SignupForm — submit | `POST /api/auth/signup` |
+| Token expiry → silent refresh | `PATCH /api/auth/refresh` |
 
 ### Task MFE (`mfe-task/`)
 
 | Frontend Element | Endpoint |
 |---|---|
-| Task list (My Tasks view) | `GET /api/tasks` |
-| Stats row (Total / In Progress / In Review / Done) | `GET /api/tasks/stats` |
-| Status filter tabs | `GET /api/tasks?statusId=...` |
-| Team filter bar | `GET /api/tasks?teamId=...` |
-| Task row checkbox (mark done) | `PATCH /api/tasks/:id` `{ statusId: <done-status-id> }` |
+| Task list | `GET /api/tasks` |
+| Stats row | `GET /api/tasks/stats` |
+| Status filter | `GET /api/tasks?statusId=...` |
+| Team filter | `GET /api/tasks?teamId=...` |
+| Task row checkbox (mark done) | `PATCH /api/tasks/:id` |
 | TaskFormScreen — Team dropdown | `GET /api/teams` |
-| TaskFormScreen — Status dropdown (per team) | `GET /api/board/:teamId/statuses` |
+| TaskFormScreen — Status dropdown | `GET /api/board/:teamId/statuses` |
 | TaskFormScreen — submit | `POST /api/tasks` |
-| TaskDetailScreen — task data | `GET /api/tasks/:id` |
-| TaskDetailScreen — activity timeline | `GET /api/activity/tasks/:taskId` |
-| Sidebar — user card | `GET /api/auth/me` |
-| Topbar — notification bell | `GET /api/notifications` |
+| TaskDetailScreen | `GET /api/tasks/:id` |
+| TaskDetailScreen — activity | `GET /api/activity/tasks/:taskId` |
 
 ### Board MFE (`mfe-board/`)
 
 | Frontend Element | Endpoint |
 |---|---|
-| Teams list landing at `/board` | `GET /api/teams` |
-| Topbar team-switcher dropdown | `GET /api/teams` |
+| Teams list | `GET /api/teams` |
 | Kanban columns + first 5 tasks | `GET /api/board/:teamId` |
 | Column "Load more" | `GET /api/board/:teamId/status/:statusId/tasks?page&limit` |
-| "+ Add Status" modal submit | `POST /api/board/:teamId/statuses` |
-| Edit status (✎) modal submit | `PATCH /api/board/:teamId/statuses/:statusId` |
-| Delete status (🗑) | `DELETE /api/board/:teamId/statuses/:statusId` |
-| Drag task to another column | `PATCH /api/tasks/:id/status` |
-| "+ Add Task" per column | Navigates to `/tasks/new?teamId=&statusId=` → `POST /api/tasks` |
-| Sidebar — user card | `GET /api/auth/me` |
-| Topbar — notification bell | `GET /api/notifications` |
+| Add Status modal | `POST /api/board/:teamId/statuses` |
+| Edit status | `PATCH /api/board/:teamId/statuses/:statusId` |
+| Delete status | `DELETE /api/board/:teamId/statuses/:statusId` |
+| Drag task to column | `PATCH /api/tasks/:id/status` |
 
 ---
 
@@ -688,17 +745,38 @@ The following are intentionally deferred:
 ### Pagination
 
 All list endpoints support `?page=1&limit=20` query params. Default: `page=1, limit=20`.
-Paginated responses always include: `data`, `count`, `total`, `page`, `limit`, `totalPages`.
+
+`PagedResult<T>` is embedded as `result` in `ApiResponse<T>`:
+
+```json
+{
+  "data": [],
+  "count": 20,
+  "total": 142,
+  "page": 1,
+  "limit": 20,
+  "totalPages": 8
+}
+```
+
+| Field | Description |
+|---|---|
+| `data` | Items on this page |
+| `count` | `data.length` — items in this page |
+| `total` | Total records across all pages |
+| `page` | Current page number |
+| `limit` | Items requested per page |
+| `totalPages` | `ceil(total / limit)` |
 
 ### Soft Delete
 
-Tasks use `deleted_at TIMESTAMPTZ` for soft deletion. All read queries must filter `WHERE deleted_at IS NULL` unless explicitly recovering deleted tasks. Soft deletion is triggered:
-- `DELETE /api/tasks/:id` — explicit user action
-- `DELETE /api/board/:teamId/statuses/:statusId` — when a status column is deleted
+TaskItems use `deletedAt TIMESTAMPTZ`. All read queries filter `WHERE deletedAt IS NULL`. Triggered by:
+- `DELETE /api/tasks/:id`
+- `DELETE /api/board/:teamId/statuses/:statusId` (soft-deletes all tasks in the column)
 
 ### Image Uploads
 
-Upload happens **client → Cloudinary** (signed upload). The backend never proxies images. Returned secure URLs are sent to the API in `imageUrls[]` (tasks) or `image_urls[]` (comments). Public IDs are stored alongside URLs for deletion support.
+Upload happens **client → Cloudinary** (signed upload). The backend never proxies images. Returned secure URLs are sent in `imageUrls[]` (tasks) or `imageUrls[]` (comments). `publicId` stored alongside URL for deletion support.
 
 ### Role-Based Access Control
 
@@ -708,15 +786,25 @@ Upload happens **client → Cloudinary** (signed upload). The backend never prox
 | Board status edit/delete | `admin`, `pm`, or `tl` |
 | Task drag-drop | `developer` can only move tasks assigned to themselves |
 | Team edit / delete | `admin` on the team |
-| Team always-has-admin | Demoting or removing the last `admin` returns `422` |
+| Team always-has-admin | Demoting or removing the only `admin` returns `422` |
 | Status always-exists | Deleting the last status column returns `422` |
 
-### Task Identifier Format
+### Custom Exceptions → HTTP Codes
 
-Tasks use a human-readable ID like `TF-001`. This is constructed from:
-- `slug` on the `projects` table (e.g., `taskflow` → prefix `TF`)
-- `task_number` — a project-scoped sequential integer stored on the `tasks` table
+`ExceptionMiddleware` maps these automatically — throw from services, never from repositories:
 
-### Invitation Expiry
+| Exception | HTTP Code |
+|---|---|
+| `NotFoundException` | 404 |
+| `UnauthorizedException` | 401 |
+| `ForbiddenException` | 403 |
+| `ValidationException` | 422 |
+| Unhandled `Exception` | 500 |
 
-Both workspace (`workspace_invitations`) and team (`invitations`) invitations expire after **7 days**. Expired invites can be re-sent — the endpoint resets `expires_at` and returns `200`.
+### DI Registration Convention
+
+Always register `IFoo, FooService` — never the concrete class alone:
+```csharp
+builder.Services.AddScoped<IFooRepository, FooRepository>();
+builder.Services.AddScoped<IFooService, FooService>();
+```

@@ -1,8 +1,5 @@
-using Microsoft.EntityFrameworkCore;
-using TaskFlowBackend.Data;
 using TaskFlowBackend.DTOs;
 using TaskFlowBackend.DTOs.Auth;
-using TaskFlowBackend.DTOs.Users;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Models;
@@ -17,15 +14,13 @@ namespace TaskFlowBackend.Services
         private readonly IUserRepository _userRepo;
         private readonly IUserService _userService;
         private readonly IRedisCacheService _redisCache;
-        private readonly IWorkspaceService _workspaceService;
 
-        public AuthService(ITokenService tokenService, IUserRepository userRepo, IUserService userService, IRedisCacheService redisCache, IWorkspaceService workspaceService)
+        public AuthService(ITokenService tokenService, IUserRepository userRepo, IUserService userService, IRedisCacheService redisCache)
         {
             _tokenService = tokenService;
             _userRepo = userRepo;
             _userService = userService;
             _redisCache = redisCache;
-            _workspaceService = workspaceService;
         }
 
         public async Task<User?> SignupAsync(SignupRequestDto dto)
@@ -45,12 +40,9 @@ namespace TaskFlowBackend.Services
                 Password = dto.Password
             };
 
-            var resp = await _userService.CreateUser(newUser);
+            var resp = await _userService.CreateUserWithWorkspace(newUser);
 
-            if (resp != null)
-                await _workspaceService.CreateDefaultWorkspaceAsync(resp.Id, resp.Name);
-
-            return resp;
+            return resp.createdUser;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto dto)

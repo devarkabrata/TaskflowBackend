@@ -74,6 +74,34 @@ namespace TaskFlowBackend.Repository
             return member;
         }
 
+        public async Task<List<WorkspaceMember>> BulkAddAsync(Guid workspaceId, List<Guid> userIds)
+        {
+            var existingUserIds = await _context.WorkspaceMembers
+                .Where(m => m.WorkspaceId == workspaceId && userIds.Contains(m.UserId))
+                .Select(m => m.UserId)
+                .ToListAsync();
+
+            var newMembers = userIds
+                .Except(existingUserIds)
+                .Select(uid => new WorkspaceMember
+                {
+                    Id = Guid.NewGuid(),
+                    WorkspaceId = workspaceId,
+                    UserId = uid,
+                    Status = WorkspaceMemberStatus.Active,
+                    JoinedAt = DateTime.UtcNow
+                })
+                .ToList();
+
+            if (newMembers.Any())
+            {
+                await _context.WorkspaceMembers.AddRangeAsync(newMembers);
+                await _context.SaveChangesAsync();
+            }
+
+            return newMembers;
+        }
+
         public async Task<WorkspaceMember> UpdateAsync(WorkspaceMember member)
         {
             _context.WorkspaceMembers.Update(member);

@@ -68,15 +68,15 @@ namespace TaskFlowBackend.Services
             {
                 var (members, total) = await _memberRepo.GetMembersAsync(workspace.Id, search, teamId, pagination);
                 var dtos = await MapMembersToDtosAsync(workspace.Id, members);
-                return new PagedResult<PeopleListItemDto> { Items = dtos, TotalCount = total, Page = page, Limit = limit };
+                return new PagedResult<PeopleListItemDto> { Data = dtos, Total = total, Page = page, Limit = limit };
             }
 
-            // Pending only — DB-level pagination (teamId filter irrelevant for invitations)
+            // Pending only — DB-level pagination
             if (includePending && !includeActive && teamId == null)
             {
                 var (invitations, total) = await _invitationRepo.GetAllPendingAsync(workspace.Id, search, pagination);
                 var dtos = invitations.Select(MapInvitationToListItemDto).ToList();
-                return new PagedResult<PeopleListItemDto> { Items = dtos, TotalCount = total, Page = page, Limit = limit };
+                return new PagedResult<PeopleListItemDto> { Data = dtos, Total = total, Page = page, Limit = limit };
             }
 
             // Combined — fetch all from both sources, merge, in-memory paginate
@@ -93,7 +93,7 @@ namespace TaskFlowBackend.Services
             }
 
             var paged = combined.Skip(pagination.Skip).Take(pagination.Limit).ToList();
-            return new PagedResult<PeopleListItemDto> { Items = paged, TotalCount = combinedTotal, Page = page, Limit = limit };
+            return new PagedResult<PeopleListItemDto> { Data = paged, Total = combinedTotal, Page = page, Limit = limit };
         }
 
         public async Task<PeopleStatsDto> GetStatsAsync(Guid requestingUserId)
@@ -182,14 +182,32 @@ namespace TaskFlowBackend.Services
             };
         }
 
-        public async Task RemoveMemberAsync(Guid requestingUserId, Guid targetUserId)
+        public async Task<List<Guid>> AddMembersToWorkspaceAsync(Guid workspaceId, List<Guid> userIds)
+        {
+            var workspace = await _workspaceRepo.GetByIdAsync(workspaceId);
+            if (workspace == null)
+                throw new NotFoundException("Workspace not found.");
+
+            var added = await _memberRepo.BulkAddAsync(workspaceId, userIds);
+            return added.Select(m => m.UserId).ToList();
+        }
+
+        public async Task RemoveMemberAsync(Guid requestingUserId, Guid targetId)
         {
             var workspace = await GetWorkspaceOrThrowAsync(requestingUserId);
-            var member = await _memberRepo.GetByUserIdAsync(workspace.Id, targetUserId);
-            if (member == null)
-                throw new NotFoundException("Member not found in this workspace.");
 
-            await _memberRepo.RemoveAsync(workspace.Id, targetUserId);
+            // Try active member first
+            var member = await _memberRepo.GetByUserIdAsync(workspace.Id, targetId);
+            if (member != null)
+            {
+                await _memberRepo.RemoveAsync(workspace.Id, targetId);
+                return;
+            }
+
+            // Fall back to pending invitation (cancel it)
+            var deleted = await _invitationRepo.DeleteAsync(workspace.Id, targetId);
+            if (!deleted)
+                throw new NotFoundException("Member or invitation not found in this workspace.");
         }
 
         private async Task<Workspace> GetWorkspaceOrThrowAsync(Guid userId)

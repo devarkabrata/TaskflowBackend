@@ -1,0 +1,68 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TaskFlowBackend.DTOs.Users;
+using TaskFlowBackend.DTOs.Workspaces;
+using TaskFlowBackend.Helpers.API;
+using TaskFlowBackend.Helpers.Pagination;
+using TaskFlowBackend.Models;
+using TaskFlowBackend.Services.Interfaces;
+
+namespace TaskFlowBackend.Controllers
+{
+    [ApiController]
+    [Authorize]
+    [Route("api/users")]
+    public class UserController : ControllerBase
+    {
+        private readonly IUserService _userService;
+
+        public UserController(IUserService userService)
+        {
+            _userService = userService;
+        }
+
+        [HttpGet]
+        public async Task<ApiResponse<List<UserResponseDto>>> GetAllUsers([FromQuery] string? search = null, [FromQuery] int? limit = null, [FromQuery] int? page = null)
+        {
+            var paginationParams = new PaginationParams
+            {
+                Limit = limit ?? 20,
+                Page = page ?? 1,
+            };
+
+            var result = await _userService.GetAllUsers(search, paginationParams);
+
+            var response = result.Select(user => new UserResponseDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Title = user.Title,
+                AvatarInitials = user.AvatarInitials,
+                AvatarUrl = user.AvatarUrl,
+            }).ToList();
+
+            return ApiResponse<List<UserResponseDto>>.Success(response, "Users fetched successfully.");
+        }
+
+        [HttpGet("{id:guid}")]
+        public async Task<ApiResponse<UserResponseDto>> GetUserById(Guid id)
+        {
+            var result = await _userService.GetUser(id);
+
+            var response = new UserResponseDto
+            {
+                Id = result!.Id,
+                Name = result.Name,
+                Email = result.Email,
+                Title = result.Title,
+                AvatarInitials = result.AvatarInitials,
+                AvatarUrl = result.AvatarUrl,
+                Workspaces = result.OwnedWorkspaces,
+                Teams = result.AdminTeams
+            };
+
+            return ApiResponse<UserResponseDto>.Success(response, "User fetched successfully.");
+        }
+    }
+}

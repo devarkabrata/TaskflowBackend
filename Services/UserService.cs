@@ -1,5 +1,6 @@
 using TaskFlowBackend.DTOs.Auth;
 using TaskFlowBackend.DTOs.Users;
+using TaskFlowBackend.Helpers.Pagination;
 using TaskFlowBackend.Models;
 using TaskFlowBackend.Repository.Interfaces;
 using TaskFlowBackend.Services.Interfaces;
@@ -9,10 +10,12 @@ namespace TaskFlowBackend.Services
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepo;
+        private readonly IWorkspaceService _workspaceService;
 
-        public UserService(IUserRepository userRepo)
+        public UserService(IUserRepository userRepo, IWorkspaceService workspaceService)
         {
             _userRepo = userRepo;
+            _workspaceService = workspaceService;
         }
 
         // Method for computing User Initials
@@ -77,6 +80,28 @@ namespace TaskFlowBackend.Services
         {
             bool result = await _userRepo.DeleteUserAsync(id);
             return result;
+        }
+
+        public async Task<List<User>> GetAllUsers(string? search = null, PaginationParams? paginationParams = null)
+        {
+            var result = await _userRepo.GetAllUsersAsync(search, paginationParams);
+            return result;
+        }
+
+        public async Task<(User? createdUser, Workspace? workspace)> CreateUserWithWorkspace(CreateUserRequestDto user)
+        {
+            // Create the user first
+            var createdUser = await CreateUser(user);
+
+            if (createdUser == null)
+            {
+                return (null, null);
+            }
+
+            // Create and add that member to the owrkspace
+            var workspace = await _workspaceService.CreateDefaultWorkspaceAsync(createdUser.Id, createdUser.Name);
+
+            return (createdUser, workspace);
         }
     }
 }

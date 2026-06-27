@@ -39,6 +39,10 @@ namespace TaskFlowBackend.Repository
                 i.Email == email &&
                 i.Status == InvitationStatus.Pending);
 
+        public async Task<WorkspaceInvitation?> GetByIdAsync(Guid workspaceId, Guid id)
+            => await _context.WorkspaceInvitations.FirstOrDefaultAsync(i =>
+                i.WorkspaceId == workspaceId && i.Id == id);
+
         public async Task<WorkspaceInvitation> CreateAsync(WorkspaceInvitation invitation)
         {
             await _context.WorkspaceInvitations.AddAsync(invitation);
@@ -51,6 +55,15 @@ namespace TaskFlowBackend.Repository
             _context.WorkspaceInvitations.Update(invitation);
             await _context.SaveChangesAsync();
             return invitation;
+        }
+
+        public async Task<bool> DeleteAsync(Guid workspaceId, Guid id)
+        {
+            var invitation = await GetByIdAsync(workspaceId, id);
+            if (invitation == null) return false;
+            _context.WorkspaceInvitations.Remove(invitation);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

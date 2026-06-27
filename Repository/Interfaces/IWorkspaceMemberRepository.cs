@@ -10,6 +10,7 @@ namespace TaskFlowBackend.Repository.Interfaces
         Task<Dictionary<Guid, List<Guid>>> GetUserTeamIdsAsync(Guid workspaceId, List<Guid> userIds);
         Task<(int total, int active, int pendingInvites, int totalTeams)> GetStatsAsync(Guid workspaceId);
         Task<WorkspaceMember> AddAsync(WorkspaceMember member);
+        Task<List<WorkspaceMember>> BulkAddAsync(Guid workspaceId, List<Guid> userIds);
         Task<WorkspaceMember> UpdateAsync(WorkspaceMember member);
         Task<bool> RemoveAsync(Guid workspaceId, Guid userId);
     }
