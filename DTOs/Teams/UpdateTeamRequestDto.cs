@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using TaskFlowBackend.Enums;
 
 namespace TaskFlowBackend.DTOs.Teams
 {
@@ -12,5 +13,16 @@ namespace TaskFlowBackend.DTOs.Teams
 
         [RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Color must be a valid hex code e.g. #6155DD.")]
         public string? Color { get; set; }
+
+        public List<TeamMemberUpdateDto>? Members { get; set; }
+    }
+
+    public class TeamMemberUpdateDto
+    {
+        [Required]
+        public Guid UserId { get; set; }
+
+        [Required]
+        public TeamRole Role { get; set; }
     }
 }
