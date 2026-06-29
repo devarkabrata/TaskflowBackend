@@ -11,6 +11,6 @@ namespace TaskFlowBackend.Repository.Interfaces
         Task<User?> UpdateUserAsync(User user);
         Task<bool> DeleteUserAsync(Guid id);
         Task<User?> GetUserSearchAsync(string searchTerm);
-        Task<List<User>> GetAllUsersAsync(string? search = null, PaginationParams? paginationParams = null);
+        Task<List<User>> GetAllUsersAsync(string? search = null, PaginationParams? paginationParams = null, Guid? workspaceId = null);
     }
 }

@@ -82,9 +82,9 @@ namespace TaskFlowBackend.Services
             return result;
         }
 
-        public async Task<List<User>> GetAllUsers(string? search = null, PaginationParams? paginationParams = null)
+        public async Task<List<User>> GetAllUsers(string? search = null, PaginationParams? paginationParams = null, Guid? workspaceId = null)
         {
-            var result = await _userRepo.GetAllUsersAsync(search, paginationParams);
+            var result = await _userRepo.GetAllUsersAsync(search, paginationParams, workspaceId);
             return result;
         }
 

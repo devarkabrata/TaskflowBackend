@@ -16,9 +16,14 @@ namespace TaskFlowBackend.Repository
         }
 
         // Getting all users
-        public async Task<List<User>> GetAllUsersAsync(string? search = null, PaginationParams? paginationParams = null)
+        public async Task<List<User>> GetAllUsersAsync(string? search = null, PaginationParams? paginationParams = null, Guid? workspaceId = null)
         {
             var query = _context.Users.AsQueryable();
+
+            if (workspaceId != null)
+            {
+                query = query.Where(u => u.WorkspaceMemberships.Any(wm => wm.WorkspaceId == workspaceId));
+            }
 
             if (!string.IsNullOrEmpty(search))
             {

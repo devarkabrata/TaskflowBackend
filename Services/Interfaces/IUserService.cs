@@ -12,6 +12,6 @@ namespace TaskFlowBackend.Services.Interfaces
         Task<User?> UpdateUser(Guid id, UpdateUserRequestDto user);
         Task<User?> GetUser(Guid id);
         Task<bool> DeleteUser(Guid id);
-        Task<List<User>> GetAllUsers(string? search = null, PaginationParams? paginationParams = null);
+        Task<List<User>> GetAllUsers(string? search = null, PaginationParams? paginationParams = null, Guid? workspaceId = null);
     }
 }

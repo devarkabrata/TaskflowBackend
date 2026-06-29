@@ -22,7 +22,7 @@ namespace TaskFlowBackend.Controllers
         }
 
         [HttpGet]
-        public async Task<ApiResponse<List<UserResponseDto>>> GetAllUsers([FromQuery] string? search = null, [FromQuery] int? limit = null, [FromQuery] int? page = null)
+        public async Task<ApiResponse<List<UserResponseDto>>> GetAllUsers([FromQuery] string? search = null, [FromQuery] int? limit = null, [FromQuery] int? page = null, [FromQuery] Guid? workspaceId = null)
         {
             var paginationParams = new PaginationParams
             {
@@ -30,7 +30,7 @@ namespace TaskFlowBackend.Controllers
                 Page = page ?? 1,
             };
 
-            var result = await _userService.GetAllUsers(search, paginationParams);
+            var result = await _userService.GetAllUsers(search, paginationParams, workspaceId);
 
             var response = result.Select(user => new UserResponseDto
             {
