@@ -156,6 +156,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<TransactionMiddleware>();
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthentication();
