@@ -24,7 +24,7 @@ namespace TaskFlowBackend.Repository
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
-                query = query.Where(m => m.User.Name.Contains(search) || m.User.Email.Contains(search));
+                query = query.Where(m => m.User.Name.ToLower().Contains(search.ToLower()) || m.User.Email.ToLower().Contains(search.ToLower()));
 
             if (teamId.HasValue)
                 query = query.Where(m => _context.TeamMembers.Any(tm => tm.TeamId == teamId.Value && tm.UserId == m.UserId));

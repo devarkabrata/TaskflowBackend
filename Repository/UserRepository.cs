@@ -27,7 +27,7 @@ namespace TaskFlowBackend.Repository
 
             if (!string.IsNullOrEmpty(search))
             {
-                query = query.Where(u => u.Name.Contains(search) || u.Email.Contains(search));
+                query = query.Where(u => u.Name.ToLower().Contains(search.ToLower()) || u.Email.ToLower().Contains(search.ToLower()));
             }
 
             if(paginationParams == null)
