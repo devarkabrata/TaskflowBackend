@@ -107,6 +107,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
+builder.Services.AddScoped<IBoardStatusService, BoardStatusService>();
 builder.Services.AddScoped<IEventPublisherService, EventPublisherService>();
 
 
