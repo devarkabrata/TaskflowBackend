@@ -13,6 +13,7 @@ using TaskFlowBackend.Services;
 using TaskFlowBackend.Services.Interfaces;
 using StackExchange.Redis;
 using Microsoft.AspNetCore.Mvc;
+using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,14 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
     string connectionString = builder.Configuration.GetConnectionString("RedisConnection") ?? "";
     return ConnectionMultiplexer.Connect(connectionString);
+});
+
+// RabbitMQ Configuration
+builder.Services.AddSingleton<IConnection>(sp =>
+{
+    string connectionString = builder.Configuration.GetConnectionString("RabbitMqConnection") ?? "amqp://guest:guest@localhost:5672";
+    var factory = new ConnectionFactory { Uri = new Uri(connectionString) };
+    return factory.CreateConnectionAsync().GetAwaiter().GetResult();
 });
 
 // JWT Authentication
@@ -95,6 +104,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<IEventPublisherService, EventPublisherService>();
 
 
 builder.Services.AddControllers()

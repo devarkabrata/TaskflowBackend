@@ -30,11 +30,13 @@ APP Progress/       → Per-controller API endpoint tracking (markdown)
 | Lifetime | Type | Implementation |
 |----------|------|----------------|
 | Singleton | IConnectionMultiplexer | ConnectionMultiplexer (Redis) |
+| Singleton | IConnection | RabbitMQ.Client connection |
 | Scoped | IRedisCacheService | RedisCacheService |
 | Scoped | IUserRepository | UserRepository |
 | Scoped | ITokenService | TokenService |
 | Scoped | IAuthService | AuthService |
 | Scoped | IUserService | UserService |
+| Scoped | IEventPublisherService | EventPublisherService |
 
 When adding a new service: register `IFoo, FooService` — never register the concrete class alone.
 
@@ -178,6 +180,7 @@ All enums stored as **strings** in the DB (configured in FluentAPIConfigurations
 | Microsoft.AspNetCore.Authentication.JwtBearer 8.0.0 | JWT bearer auth |
 | Npgsql.EntityFrameworkCore.PostgreSQL 8.0.0 | PostgreSQL provider |
 | StackExchange.Redis 3.0.0 | Redis client |
+| RabbitMQ.Client 7.1.2 | AMQP client — publishes events to `notifications.exchange` for the `Notification` microservice to consume |
 | Swashbuckle.AspNetCore 6.6.2 | Swagger UI |
 | OneOf 3.0.160 | Result type (available, not yet widely used) |
 | Microsoft.EntityFrameworkCore.Tools 8.0.0 | EF Core CLI |
@@ -193,6 +196,8 @@ Secrets live in `appsettings.Development.json` (gitignored in production).
 ```
 ConnectionStrings:DefaultConnection   → PostgreSQL connection string
 ConnectionStrings:RedisConnection     → StackExchange.Redis format (not rediss:// URI)
+ConnectionStrings:RabbitMqConnection  → AMQP URI, e.g. amqp://guest:guest@localhost:5672
+RabbitMq:ExchangeName                 → Shared topic exchange name (notifications.exchange)
 JwtSettings:Key                       → Min 32-char signing key
 JwtSettings:Issuer
 JwtSettings:Audience
