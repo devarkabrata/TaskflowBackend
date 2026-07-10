@@ -6,6 +6,151 @@ namespace TaskFlowBackend.Data.Fluent
 {
     public class FluentAPIConfigurations
     {
+        public static void ConfigureBoardStatus(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<BoardStatus>(entity =>
+            {
+                entity.ToTable("board_statuses");
+
+                entity.HasKey(b => b.Id);
+                entity.Property(b => b.Id)
+                    .HasDefaultValueSql("gen_random_uuid()");
+
+                entity.Property(b => b.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(b => b.Description)
+                    .HasMaxLength(300);
+
+                entity.Property(b => b.Position)
+                    .HasDefaultValue(0);
+
+                entity.Property(b => b.CreatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.Property(b => b.UpdatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                // One status name per team
+                entity.HasIndex(b => new { b.TeamId, b.Name })
+                    .IsUnique();
+
+                entity.HasIndex(b => new { b.TeamId, b.Position });
+
+                entity.HasOne(b => b.Team)
+                    .WithMany(t => t.BoardStatuses)
+                    .HasForeignKey(b => b.TeamId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
+        public static void ConfigureTaskItem(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<TaskItem>(entity =>
+            {
+                entity.ToTable("tasks");
+
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.Id)
+                    .HasDefaultValueSql("gen_random_uuid()");
+
+                entity.Property(t => t.Title)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(t => t.Priority)
+                    .IsRequired()
+                    .HasConversion<string>()
+                    .HasDefaultValue(Priority.Medium)
+                    .HasSentinel((Priority)(-1));
+
+                entity.Property(t => t.Label)
+                    .HasConversion<string>();
+
+                entity.Property(t => t.AssigneeIds)
+                    .IsRequired()
+                    .HasDefaultValueSql("'{}'::uuid[]");
+
+                entity.Property(t => t.Progress)
+                    .HasColumnType("smallint")
+                    .HasDefaultValue(0);
+
+                entity.Property(t => t.CreatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.Property(t => t.UpdatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.HasIndex(t => t.CreatedBy);
+                entity.HasIndex(t => t.StatusId);
+                entity.HasIndex(t => t.TeamId);
+
+                entity.HasOne(t => t.Creator)
+                    .WithMany(u => u.CreatedTasks)
+                    .HasForeignKey(t => t.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(t => t.Status)
+                    .WithMany(s => s.Tasks)
+                    .HasForeignKey(t => t.StatusId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(t => t.Team)
+                    .WithMany(tm => tm.Tasks)
+                    .HasForeignKey(t => t.TeamId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
+        public static void ConfigureComment(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Comment>(entity =>
+            {
+                entity.ToTable("comments");
+
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.Id)
+                    .HasDefaultValueSql("gen_random_uuid()");
+
+                entity.Property(c => c.Body)
+                    .IsRequired();
+
+                entity.Property(c => c.ImageUrls)
+                    .IsRequired()
+                    .HasDefaultValueSql("'{}'::text[]");
+
+                entity.Property(c => c.ImagePublicIds)
+                    .IsRequired()
+                    .HasDefaultValueSql("'{}'::text[]");
+
+                entity.Property(c => c.CreatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.Property(c => c.UpdatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.HasIndex(c => c.AuthorId);
+                entity.HasIndex(c => c.TaskId);
+
+                entity.HasOne(c => c.Author)
+                    .WithMany(u => u.Comments)
+                    .HasForeignKey(c => c.AuthorId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(c => c.Task)
+                    .WithMany(t => t.Comments)
+                    .HasForeignKey(c => c.TaskId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
         public static void ConfigureTeamInvitation(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<TeamInvitation>(entity =>

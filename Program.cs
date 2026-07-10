@@ -97,6 +97,8 @@ builder.Services.AddScoped<IWorkspaceInvitationRepository, WorkspaceInvitationRe
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
 builder.Services.AddScoped<ITeamInvitationRepository, TeamInvitationRepository>();
+builder.Services.AddScoped<IBoardStatusRepository, BoardStatusRepository>();
+builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 
 // ==== APP Services ====
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -104,6 +106,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IEventPublisherService, EventPublisherService>();
 
 

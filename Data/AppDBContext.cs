@@ -18,6 +18,9 @@ namespace TaskFlowBackend.Data
         public DbSet<Team> Teams => Set<Team>();
         public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
         public DbSet<TeamInvitation> TeamInvitations => Set<TeamInvitation>();
+        public DbSet<BoardStatus> BoardStatuses => Set<BoardStatus>();
+        public DbSet<TaskItem> TaskItems => Set<TaskItem>();
+        public DbSet<Comment> Comments => Set<Comment>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -31,6 +34,9 @@ namespace TaskFlowBackend.Data
             FluentAPIConfigurations.ConfigureTeam(modelBuilder);
             FluentAPIConfigurations.ConfigureTeamMember(modelBuilder);
             FluentAPIConfigurations.ConfigureTeamInvitation(modelBuilder);
+            FluentAPIConfigurations.ConfigureBoardStatus(modelBuilder);
+            FluentAPIConfigurations.ConfigureTaskItem(modelBuilder);
+            FluentAPIConfigurations.ConfigureComment(modelBuilder);
         }
     }
 }

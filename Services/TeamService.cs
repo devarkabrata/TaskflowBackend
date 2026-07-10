@@ -15,19 +15,22 @@ namespace TaskFlowBackend.Services
         private readonly ITeamInvitationRepository _invitationRepo;
         private readonly IWorkspaceRepository _workspaceRepo;
         private readonly IWorkspaceMemberRepository _workspaceMemberRepo;
+        private readonly IBoardStatusRepository _boardStatusRepo;
 
         public TeamService(
             ITeamRepository teamRepo,
             ITeamMemberRepository memberRepo,
             ITeamInvitationRepository invitationRepo,
             IWorkspaceRepository workspaceRepo,
-            IWorkspaceMemberRepository workspaceMemberRepo)
+            IWorkspaceMemberRepository workspaceMemberRepo,
+            IBoardStatusRepository boardStatusRepo)
         {
             _teamRepo = teamRepo;
             _memberRepo = memberRepo;
             _invitationRepo = invitationRepo;
             _workspaceRepo = workspaceRepo;
             _workspaceMemberRepo = workspaceMemberRepo;
+            _boardStatusRepo = boardStatusRepo;
         }
 
         public async Task<List<TeamResponseDto>> GetMyTeamsAsync(Guid userId)
@@ -72,6 +75,7 @@ namespace TaskFlowBackend.Services
             }
 
             await _memberRepo.AddRangeAsync(members);
+            await _boardStatusRepo.SeedDefaultsAsync(created.Id);
 
             var fullTeam = await _teamRepo.GetByIdAsync(created.Id);
             return MapToDto(fullTeam!);

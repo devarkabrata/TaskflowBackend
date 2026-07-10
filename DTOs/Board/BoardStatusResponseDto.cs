@@ -1,3 +1,5 @@
+using TaskFlowBackend.DTOs.Tasks;
+
 namespace TaskFlowBackend.DTOs.Board
 {
     public class BoardStatusResponseDto
@@ -8,7 +10,7 @@ namespace TaskFlowBackend.DTOs.Board
         public int Position { get; set; }
         public int TotalTasks { get; set; }
 
-        // Populated with up to 5 tasks — will be typed once TaskItem model is built
-        public List<object> Tasks { get; set; } = new();
+        // All non-deleted tasks in this team currently on this status
+        public List<TaskResponseDto> Tasks { get; set; } = new();
     }
 }
