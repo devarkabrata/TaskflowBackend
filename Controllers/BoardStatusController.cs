@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using TaskFlowBackend.DTOs;
 using TaskFlowBackend.DTOs.Board;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Services.Interfaces;
@@ -26,6 +27,22 @@ namespace TaskFlowBackend.Controllers
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
             var result = await _boardStatusService.GetCatalogAsync(teamId, userId);
             return ApiResponse<List<BoardStatusCatalogDto>>.Success(result, "Statuses fetched successfully.");
+        }
+
+        [HttpPost("create")]
+        public async Task<ApiResponse<BoardStatusResponseDTO>> CreateStatus(BoardStatusRequestDTO request)
+        {
+            var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            var result = await _boardStatusService.CreateStatusAsync(request, userId);
+            return ApiResponse<BoardStatusResponseDTO>.Success(result, "Status created successfully.");
+        }
+
+        [HttpDelete("{id:guid}")]
+        public async Task<ApiResponse<object>> DeleteStatus(Guid id)
+        {
+            var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+            await _boardStatusService.DeleteStatusAsync(id, userId);
+            return ApiResponse<object>.Success(null!, "Status deleted successfully.", 204);
         }
     }
 }

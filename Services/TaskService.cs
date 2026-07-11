@@ -138,7 +138,7 @@ namespace TaskFlowBackend.Services
                 Description = status.Description,
                 Position = status.Position,
                 TotalTasks = tasks.Count(t => t.StatusId == status.Id),
-                Tasks = tasks.Where(t => t.StatusId == status.Id).Select(t => MapToDto(t, userLookup)).ToList()
+                Tasks = tasks.Where(t => t.StatusId == status.Id).Select(t => MapToDto(t, userLookup, false)).ToList()
             }).ToList();
 
             return new BoardResponseDto { TeamId = teamId, Columns = columns };
@@ -209,12 +209,12 @@ namespace TaskFlowBackend.Services
             return MapToDto(task, userLookup);
         }
 
-        private static TaskResponseDto MapToDto(TaskItem task, Dictionary<Guid, User> userLookup) => new()
+        private static TaskResponseDto MapToDto(TaskItem task, Dictionary<Guid, User> userLookup, bool includeDescription = true) => new()
         {
             Id = task.Id,
             TaskNumber = task.TaskNumber,
             Title = task.Title,
-            Description = task.Description,
+            Description = includeDescription ? task.Description : null,
             Priority = task.Priority.ToString(),
             Label = task.Label?.ToString(),
             StatusId = task.StatusId,

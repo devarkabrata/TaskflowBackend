@@ -7,6 +7,7 @@ namespace TaskFlowBackend.Models
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int Position { get; set; }
+        public bool IsDeletable { get; set; } = true;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 

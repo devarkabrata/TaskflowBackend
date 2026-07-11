@@ -15,17 +15,20 @@ namespace TaskFlowBackend.Services
         private readonly IWorkspaceMemberRepository _memberRepo;
         private readonly IWorkspaceInvitationRepository _invitationRepo;
         private readonly IUserRepository _userRepo;
+        private readonly ITeamRepository _teamRepo;
 
         public WorkspaceService(
             IWorkspaceRepository workspaceRepo,
             IWorkspaceMemberRepository memberRepo,
             IWorkspaceInvitationRepository invitationRepo,
-            IUserRepository userRepo)
+            IUserRepository userRepo,
+            ITeamRepository teamRepo)
         {
             _workspaceRepo = workspaceRepo;
             _memberRepo = memberRepo;
             _invitationRepo = invitationRepo;
             _userRepo = userRepo;
+            _teamRepo = teamRepo;
         }
 
         public async Task<Workspace> CreateDefaultWorkspaceAsync(Guid userId, string userName)
@@ -200,6 +203,18 @@ namespace TaskFlowBackend.Services
             var member = await _memberRepo.GetByUserIdAsync(workspace.Id, targetId);
             if (member != null)
             {
+                var adminTeams = await _teamRepo.GetByWorkspaceIdForAdminAsync(workspace.Id, targetId);
+                if (adminTeams.Any())
+                    throw new ValidationException("Validation failed.", new List<ApiError>
+                    {
+                        new ApiError
+                        {
+                            Field = "userId",
+                            Code = "IS_TEAM_ADMIN",
+                            Message = $"This member administers {adminTeams.Count} team(s) ({string.Join(", ", adminTeams.Select(t => t.Name))}). Reassign or delete those teams before removing them from the workspace."
+                        }
+                    });
+
                 await _memberRepo.RemoveAsync(workspace.Id, targetId);
                 return;
             }

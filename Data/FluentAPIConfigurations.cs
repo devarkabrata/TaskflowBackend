@@ -98,7 +98,7 @@ namespace TaskFlowBackend.Data.Fluent
                 entity.HasOne(t => t.Status)
                     .WithMany(s => s.Tasks)
                     .HasForeignKey(t => t.StatusId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(t => t.Team)
                     .WithMany(tm => tm.Tasks)
