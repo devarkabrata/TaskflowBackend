@@ -43,7 +43,7 @@ namespace TaskFlowBackend.Services
                 StatusId = dto.StatusId,
                 TeamId = dto.TeamId,
                 AssigneeIds = dto.AssigneeIds.ToArray(),
-                ExpectedCompletion = dto.ExpectedCompletion,
+                ExpectedCompletion = ToUtc(dto.ExpectedCompletion),
                 Progress = dto.Progress,
                 CreatedBy = userId,
                 CreatedAt = DateTime.UtcNow,
@@ -85,7 +85,7 @@ namespace TaskFlowBackend.Services
             if (dto.Description != null) task.Description = dto.Description;
             if (dto.Priority.HasValue) task.Priority = dto.Priority.Value;
             if (dto.Label.HasValue) task.Label = dto.Label;
-            if (dto.ExpectedCompletion.HasValue) task.ExpectedCompletion = dto.ExpectedCompletion;
+            if (dto.ExpectedCompletion.HasValue) task.ExpectedCompletion = ToUtc(dto.ExpectedCompletion);
             if (dto.Progress.HasValue) task.Progress = dto.Progress.Value;
             task.UpdatedAt = DateTime.UtcNow;
 
@@ -159,6 +159,13 @@ namespace TaskFlowBackend.Services
             var reloaded = await _taskRepo.GetByIdAsync(updated.Id);
             return await MapToDtoAsync(reloaded!);
         }
+
+        private static DateTime? ToUtc(DateTime? value) => value?.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.Value.ToUniversalTime(),
+            _ => value.HasValue ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc) : null
+        };
 
         private async Task<Team> GetTeamOrThrowAsync(Guid teamId)
             => await _teamRepo.GetByIdAsync(teamId) ?? throw new NotFoundException("Team not found.");

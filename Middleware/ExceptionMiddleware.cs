@@ -44,7 +44,7 @@ namespace TaskFlowBackend.Middleware
             // Dev message only shown outside production
             var devMessage = _env.IsProduction()
                 ? ""
-                : ex.Message;
+                : ex.InnerException?.Message ?? ex.Message;
 
             ApiResponse<object> response;
 
