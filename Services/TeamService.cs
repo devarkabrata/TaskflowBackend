@@ -244,6 +244,7 @@ namespace TaskFlowBackend.Services
                 AvatarInitials = m.User.AvatarInitials,
                 Role = m.Role.ToString()
             }).ToList(),
+            StatusTaskCounts = team.Tasks.GroupBy(task => task.Status.Name).ToDictionary(g => g.Key, g => g.Count()),
             CreatedAt = team.CreatedAt,
             UpdatedAt = team.UpdatedAt
         };

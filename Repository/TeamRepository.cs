@@ -27,11 +27,15 @@ namespace TaskFlowBackend.Repository
                 .Include(t => t.Members)
                     .ThenInclude(m => m.User)
                 .Include(t => t.Invitations)
+                .Include(t => t.Tasks)
+                    .ThenInclude(task => task.Status)
                 .ToListAsync();
 
         public async Task<List<Team>> GetByWorkspaceIdForAdminAsync(Guid workspaceId, Guid adminUserId)
             => await _context.Teams
                 .Where(t => t.WorkspaceId == workspaceId && t.AdminId == adminUserId)
+                .Include(t => t.Tasks)
+                    .ThenInclude(task => task.Status)
                 .ToListAsync();
 
         public async Task<Team> CreateAsync(Team team)

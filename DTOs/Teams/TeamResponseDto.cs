@@ -9,7 +9,8 @@ namespace TaskFlowBackend.DTOs.Teams
         public Guid WorkspaceId { get; set; }
         public Guid AdminId { get; set; }
         public int PendingInvites { get; set; }
-        public List<TeamMemberSummaryDto> Members { get; set; } = new();
+        public List<TeamMemberSummaryDto>? Members { get; set; } = new();
+        public Dictionary<string, int> StatusTaskCounts { get; set; } = new(); 
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }
