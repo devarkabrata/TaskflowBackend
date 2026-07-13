@@ -1,3 +1,4 @@
+using TaskFlowBackend.DTOs.Tasks.Archive;
 using TaskFlowBackend.Enums;
 
 namespace TaskFlowBackend.Models
@@ -12,7 +13,7 @@ namespace TaskFlowBackend.Models
         public LabelType? Label { get; set; }
         public Guid StatusId { get; set; }
         public Guid TeamId { get; set; }
-        public List<object> AssigneeDetails { get; set; } = new List<object>();
+        public List<TaskAssigneeDto> AssigneeDetails { get; set; } = new List<TaskAssigneeDto>();
         public DateTime? ExpectedCompletion { get; set; }
         public int Progress { get; set; }
         public Guid CreatedBy { get; set; }

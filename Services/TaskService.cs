@@ -1,5 +1,6 @@
 using TaskFlowBackend.DTOs.Board;
 using TaskFlowBackend.DTOs.Tasks;
+using TaskFlowBackend.DTOs.Tasks.Archive;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Helpers.Pagination;
@@ -189,7 +190,13 @@ namespace TaskFlowBackend.Services
                 Label = task.Label,
                 StatusId = task.StatusId,
                 TeamId = task.TeamId,
-                AssigneeDetails = users.Select(u => new { u.Id, u.Name, u.AvatarInitials, u.AvatarUrl }).ToList<object>(),
+                AssigneeDetails = users.Select(u => new TaskAssigneeDto
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    AvatarInitials = u.AvatarInitials,
+                    AvatarUrl = u.AvatarUrl ?? ""
+                }).ToList(),
                 ExpectedCompletion = task.ExpectedCompletion,
                 Progress = task.Progress,
                 CreatedBy = task.CreatedBy,
