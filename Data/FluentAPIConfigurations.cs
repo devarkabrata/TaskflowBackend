@@ -446,5 +446,46 @@ namespace TaskFlowBackend.Data.Fluent
                     .HasDefaultValueSql("NOW()");
             });
         }
+
+        public static void ConfigureArchivedTaskItem(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<ArchivedTaskItem>(entity =>
+            {
+                entity.ToTable("archived_tasks");
+
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.Id)
+                    .HasDefaultValueSql("gen_random_uuid()");
+
+                entity.Property(t => t.Title)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(t => t.Priority)
+                    .IsRequired()
+                    .HasConversion<string>()
+                    .HasDefaultValue(Priority.Medium)
+                    .HasSentinel((Priority)(-1));
+
+                entity.Property(t => t.Label)
+                    .HasConversion<string>();
+
+                entity.Property(t => t.AssigneeDetails)
+                    .IsRequired()
+                    .HasDefaultValueSql("'[]'::jsonb");
+
+                entity.Property(t => t.Progress)
+                    .HasColumnType("smallint")
+                    .HasDefaultValue(0);
+
+                entity.Property(t => t.CreatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.Property(t => t.UpdatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+            });
+        }
     }
 }
