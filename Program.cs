@@ -14,6 +14,8 @@ using TaskFlowBackend.Services.Interfaces;
 using StackExchange.Redis;
 using Microsoft.AspNetCore.Mvc;
 using RabbitMQ.Client;
+using TaskFlowBackend.Repository.Archive.Interfaces;
+using TaskFlowBackend.Repository.Archive;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -102,6 +104,7 @@ builder.Services.AddScoped<ITeamMemberRepository, TeamMemberRepository>();
 builder.Services.AddScoped<ITeamInvitationRepository, TeamInvitationRepository>();
 builder.Services.AddScoped<IBoardStatusRepository, BoardStatusRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
+builder.Services.AddScoped<IMigrateTasksRepository, MigrateTasksRepository>();
 
 // ==== APP Services ====
 builder.Services.AddScoped<ITokenService, TokenService>();
