@@ -1,5 +1,6 @@
 using TaskFlowBackend.DTOs.Auth;
 using TaskFlowBackend.DTOs.Users;
+using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Helpers.Pagination;
 using TaskFlowBackend.Models;
 using TaskFlowBackend.Repository.Interfaces;
@@ -11,11 +12,13 @@ namespace TaskFlowBackend.Services
     {
         private readonly IUserRepository _userRepo;
         private readonly IWorkspaceService _workspaceService;
+        private readonly IAvatarStorageService _avatarStorageService;
 
-        public UserService(IUserRepository userRepo, IWorkspaceService workspaceService)
+        public UserService(IUserRepository userRepo, IWorkspaceService workspaceService, IAvatarStorageService avatarStorageService)
         {
             _userRepo = userRepo;
             _workspaceService = workspaceService;
+            _avatarStorageService = avatarStorageService;
         }
 
         // Method for computing User Initials
@@ -68,6 +71,40 @@ namespace TaskFlowBackend.Services
             var result = await _userRepo.UpdateUserAsync(existingUser);
 
             return result;
+        }
+
+        public async Task<User> UpdateAvatarAsync(Guid callerUserId, IFormFile file)
+        {
+            var user = await _userRepo.GetUserByIdAsync(callerUserId) ?? throw new NotFoundException("User not found.");
+
+            var (url, storagePath) = await _avatarStorageService.UploadAsync(file, callerUserId);
+            var previousStoragePath = user.AvatarPublicId;
+
+            user.AvatarUrl = url;
+            user.AvatarPublicId = storagePath;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            var updated = await _userRepo.UpdateUserAsync(user);
+
+            if (!string.IsNullOrEmpty(previousStoragePath))
+                await _avatarStorageService.DeleteAsync(previousStoragePath);
+
+            return updated!;
+        }
+
+        public async Task<string> DeleteAvatarAsync(Guid callerUserId)
+        {
+            var user = await _userRepo.GetUserByIdAsync(callerUserId) ?? throw new NotFoundException("User not found.");
+
+            if (!string.IsNullOrEmpty(user.AvatarPublicId))
+                await _avatarStorageService.DeleteAsync(user.AvatarPublicId);
+
+            user.AvatarUrl = null;
+            user.AvatarPublicId = null;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _userRepo.UpdateUserAsync(user);
+            return user.AvatarInitials!;
         }
 
         public async Task<User?> GetUser(Guid id)

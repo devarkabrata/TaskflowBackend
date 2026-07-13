@@ -41,6 +41,17 @@ builder.Services.AddSingleton<IConnection>(sp =>
     return factory.CreateConnectionAsync().GetAwaiter().GetResult();
 });
 
+// Supabase Storage (avatar uploads)
+builder.Services.AddHttpClient("SupabaseStorage", (sp, client) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var baseUrl = config["SupabaseStorage:Url"] ?? "";
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.Add("apikey", config["SupabaseStorage:ServiceRoleKey"]);
+    client.DefaultRequestHeaders.Authorization =
+        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", config["SupabaseStorage:ServiceRoleKey"]);
+});
+
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
@@ -115,6 +126,7 @@ builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IBoardStatusService, BoardStatusService>();
 builder.Services.AddScoped<IEventPublisherService, EventPublisherService>();
+builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 
 
 builder.Services.AddControllers()
