@@ -1,3 +1,4 @@
+using TaskFlowBackend.Helpers.Pagination;
 using TaskFlowBackend.Models;
 
 namespace TaskFlowBackend.Repository.Archive.Interfaces
@@ -6,5 +7,7 @@ namespace TaskFlowBackend.Repository.Archive.Interfaces
     {
         Task<Task> MigrateTasksToArchiveAsync(List<ArchivedTaskItem> taskItems, CancellationToken cancellationToken = default);
         Task<List<Guid>> GetConfirmedTaskIds(List<Guid> tasks, CancellationToken ct = default);
+        Task<(List<ArchivedTaskItem>, int)> GetArchivedTasksAsync(Guid teamId, Guid? statusId, string? search, PaginationParams? pagination = null);
+        Task<ArchivedTaskItem?> GetArchivedTaskByIdAsync(Guid taskId, CancellationToken ct = default);
     }
 }

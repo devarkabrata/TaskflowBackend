@@ -6,5 +6,6 @@ namespace TaskFlowBackend.DTOs
         public string? Description { get; set; }
         public int Position { get; set; }
         public Guid TeamId { get; set; }
+        public bool IsArchievable { get; set; }
     }
 }

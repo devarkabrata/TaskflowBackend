@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TaskFlowBackend.Data;
+using TaskFlowBackend.Helpers.Pagination;
 using TaskFlowBackend.Models;
 using TaskFlowBackend.Repository.Archive.Interfaces;
 
@@ -32,6 +33,34 @@ namespace TaskFlowBackend.Repository.Archive
                 .Where(t => tasks.Contains(t.Id))
                 .Select(t => t.Id)
                 .ToListAsync(ct);
+        }
+
+        public async Task<ArchivedTaskItem?> GetArchivedTaskByIdAsync(Guid taskId, CancellationToken ct = default)
+        {
+            return await _archiveDbContext.ArchivedTaskItems
+                .FirstOrDefaultAsync(t => t.Id == taskId, ct);
+        }
+
+        public async Task<(List<ArchivedTaskItem>, int)> GetArchivedTasksAsync(Guid teamId, Guid? statusId, string? search, PaginationParams? pagination = null)
+        {
+            var query = _archiveDbContext.ArchivedTaskItems.Where(t => t.TeamId == teamId);
+
+            if (statusId.HasValue)
+            {
+                query = query.Where(t => t.StatusId == statusId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(t => t.Title.Contains(search));
+            }
+
+            var total = await query.CountAsync();
+
+            if (pagination != null)
+                query = query.Skip(pagination.Skip).Take(pagination.Limit);
+
+            return (await query.ToListAsync(), total);
         }
     }
 }

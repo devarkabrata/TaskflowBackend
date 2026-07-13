@@ -16,6 +16,8 @@ using Microsoft.AspNetCore.Mvc;
 using RabbitMQ.Client;
 using TaskFlowBackend.Repository.Archive.Interfaces;
 using TaskFlowBackend.Repository.Archive;
+using TaskFlowBackend.Services.Archive.Interfaces;
+using TaskFlowBackend.Services.Archive;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -127,6 +129,7 @@ builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IBoardStatusService, BoardStatusService>();
 builder.Services.AddScoped<IEventPublisherService, EventPublisherService>();
 builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
+builder.Services.AddScoped<ITaskMigrationService, TaskMigrationService>();
 
 
 builder.Services.AddControllers()

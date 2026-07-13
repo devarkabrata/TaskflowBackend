@@ -115,6 +115,7 @@ namespace TaskFlowBackend.Repository
         public async Task<List<TaskItem>> GetTasksByIdsAsync(IEnumerable<Guid> taskIds, CancellationToken ct = default)
         {
             return await _context.TaskItems
+                .IgnoreQueryFilters()
                 .Where(t => taskIds.Contains(t.Id))
                 .ToListAsync(ct);
         }
