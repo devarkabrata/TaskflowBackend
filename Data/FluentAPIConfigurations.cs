@@ -1,4 +1,7 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using TaskFlowBackend.DTOs.Tasks.Archive;
 using TaskFlowBackend.Enums;
 using TaskFlowBackend.Models;
 
@@ -472,6 +475,14 @@ namespace TaskFlowBackend.Data.Fluent
 
                 entity.Property(t => t.AssigneeDetails)
                     .IsRequired()
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                        v => JsonSerializer.Deserialize<List<TaskAssigneeDto>>(v, (JsonSerializerOptions?)null) ?? new List<TaskAssigneeDto>(),
+                        new ValueComparer<List<TaskAssigneeDto>>(
+                            (a, b) => JsonSerializer.Serialize(a, (JsonSerializerOptions?)null) == JsonSerializer.Serialize(b, (JsonSerializerOptions?)null),
+                            v => v.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.Id)),
+                            v => v.ToList()))
                     .HasDefaultValueSql("'[]'::jsonb");
 
                 entity.Property(t => t.Progress)
