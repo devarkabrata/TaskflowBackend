@@ -235,6 +235,6 @@ Swagger UI available at `/swagger` in Development.
 - **Never** register a concrete service class without its interface in DI
 - JWT: `iss`, `aud`, `exp` are set by the `JwtSecurityToken` constructor — don't add as manual claims
 - `iat` must be a Unix timestamp: `DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()`
-- Soft deletes use `DeletedAt` (nullable DateTime) — not hard deletes for TaskItems
+- TaskItems are hard-deleted (`TaskRepository.DeleteAsync` removes the row; `Comments` cascade-delete with it). The `DeletedAt` field still exists on the model but is no longer used by the delete flow.
 - Avatar initials are auto-computed from first + last name characters
 - Cloudinary `AvatarPublicId` is stored for cleanup on avatar replace/delete

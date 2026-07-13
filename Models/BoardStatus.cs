@@ -8,6 +8,7 @@ namespace TaskFlowBackend.Models
         public string? Description { get; set; }
         public int Position { get; set; }
         public bool IsDeletable { get; set; } = true;
+        public bool IsArchievable { get; set; } = false;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 

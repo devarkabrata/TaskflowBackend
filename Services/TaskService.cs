@@ -4,6 +4,7 @@ using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Helpers.Pagination;
 using TaskFlowBackend.Models;
+using TaskFlowBackend.Repository.Archive.Interfaces;
 using TaskFlowBackend.Repository.Interfaces;
 using TaskFlowBackend.Services.Interfaces;
 
@@ -14,12 +15,14 @@ namespace TaskFlowBackend.Services
         private readonly ITaskRepository _taskRepo;
         private readonly ITeamRepository _teamRepo;
         private readonly IBoardStatusRepository _boardStatusRepo;
+        private readonly IMigrateTasksRepository _migrateTasksRepo;
 
-        public TaskService(ITaskRepository taskRepo, ITeamRepository teamRepo, IBoardStatusRepository boardStatusRepo)
+        public TaskService(ITaskRepository taskRepo, ITeamRepository teamRepo, IBoardStatusRepository boardStatusRepo, IMigrateTasksRepository migrateTasksRepo)
         {
             _taskRepo = taskRepo;
             _teamRepo = teamRepo;
             _boardStatusRepo = boardStatusRepo;
+            _migrateTasksRepo = migrateTasksRepo;
         }
 
         public async Task<TaskResponseDto> CreateTaskAsync(CreateTaskRequestDto dto, Guid userId)
@@ -100,9 +103,7 @@ namespace TaskFlowBackend.Services
             var team = await GetTeamOrThrowAsync(task.TeamId);
             EnsureMembership(team, userId);
 
-            task.DeletedAt = DateTime.UtcNow;
-            task.UpdatedAt = DateTime.UtcNow;
-            await _taskRepo.UpdateAsync(task);
+            await _taskRepo.DeleteAsync(task);
         }
 
         public async Task<PagedResult<TaskResponseDto>> ListTasksAsync(Guid userId, string? search, Guid? teamId, Guid? assigneeId, int page, int limit)
@@ -158,6 +159,66 @@ namespace TaskFlowBackend.Services
             var updated = await _taskRepo.UpdateAsync(task);
             var reloaded = await _taskRepo.GetByIdAsync(updated.Id);
             return await MapToDtoAsync(reloaded!);
+        }
+
+        public async Task<List<TaskItem>> MarkAndCopyEligibleTasksAsync(int batchSize, int olderThanDays, CancellationToken ct = default)
+        {
+            // Calculate the cutoff date based on the provided olderThanDays
+            var cutoff = DateTime.UtcNow.AddDays(-olderThanDays);
+
+            // Fetch eligible tasks from the main database
+            var eligible = await _taskRepo.GetUnarchivedTasksOlderthanThresold(Guid.Empty, cutoff, batchSize, ct);
+
+            if (eligible.Count == 0) return eligible;
+
+            // Mark tasks as archived in the main database
+            await _taskRepo.UpdateTasksAsArchivedAsync(eligible, ct);
+
+            // Get user information that are assigned to that task
+            var userIds = eligible.SelectMany(t => t.AssigneeIds).Distinct();
+            var users = await _taskRepo.GetUsersByIdsAsync(userIds);
+
+            // Copy the eligible tasks to the archive database
+            var archivedTasks = eligible.Select(task => new ArchivedTaskItem
+            {
+                Id = task.Id,
+                TaskNumber = task.TaskNumber,
+                Title = task.Title,
+                Description = task.Description,
+                Priority = task.Priority,
+                Label = task.Label,
+                StatusId = task.StatusId,
+                TeamId = task.TeamId,
+                AssigneeDetails = users.Select(u => new { u.Id, u.Name, u.AvatarInitials, u.AvatarUrl }).ToList<object>(),
+                ExpectedCompletion = task.ExpectedCompletion,
+                Progress = task.Progress,
+                CreatedBy = task.CreatedBy,
+                DeletedAt = task.DeletedAt,
+                CreatedAt = task.CreatedAt,
+                UpdatedAt = task.UpdatedAt
+            }).ToList();
+
+            await _migrateTasksRepo.MigrateTasksToArchiveAsync(archivedTasks, ct);
+
+            return eligible;
+        }
+
+        public async Task<int> DeleteConfirmedArchivedTasksAsync(CancellationToken ct)
+        {
+            // Get all archieved tasks
+            var ids = await _taskRepo.GetArchievedTasks();
+
+            if(!ids.Any()) return 0;
+
+            // Get confirmed tasks from the archive database
+            var confirmedIds = await _migrateTasksRepo.GetConfirmedTaskIds(ids, ct);
+
+            var confirmedTasks = await _taskRepo.GetTasksByIdsAsync(confirmedIds, ct);
+
+            // Delete confirmed tasks from the main database
+            var deletedCount = await _taskRepo.DeleteRangeAsync(confirmedTasks);
+
+            return deletedCount;
         }
 
         private static DateTime? ToUtc(DateTime? value) => value?.Kind switch

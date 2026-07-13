@@ -51,6 +51,7 @@ namespace TaskFlowBackend.Data.Fluent
         {
             modelBuilder.Entity<TaskItem>(entity =>
             {
+                entity.HasQueryFilter(t => t.IsArchived != true); // Exclude archived tasks from default queries
                 entity.ToTable("tasks");
 
                 entity.HasKey(t => t.Id);

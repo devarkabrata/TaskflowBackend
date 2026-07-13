@@ -1,6 +1,7 @@
 using TaskFlowBackend.DTOs.Board;
 using TaskFlowBackend.DTOs.Tasks;
 using TaskFlowBackend.Helpers.Pagination;
+using TaskFlowBackend.Models;
 
 namespace TaskFlowBackend.Services.Interfaces
 {
@@ -13,5 +14,7 @@ namespace TaskFlowBackend.Services.Interfaces
         Task<PagedResult<TaskResponseDto>> ListTasksAsync(Guid userId, string? search, Guid? teamId, Guid? assigneeId, int page, int limit);
         Task<BoardResponseDto> GetBoardAsync(Guid teamId, Guid userId);
         Task<TaskResponseDto> ChangeStatusAsync(Guid taskId, Guid statusId, Guid userId);
+        Task<List<TaskItem>> MarkAndCopyEligibleTasksAsync(int batchSize, int olderThanDays, CancellationToken ct = default);
+        Task<int> DeleteConfirmedArchivedTasksAsync(CancellationToken ct);
     }
 }

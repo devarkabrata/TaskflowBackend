@@ -44,6 +44,18 @@ namespace TaskFlowBackend.Repository
             return task;
         }
 
+        public async Task DeleteAsync(TaskItem task)
+        {
+            _context.TaskItems.Remove(task);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<int> DeleteRangeAsync(IEnumerable<TaskItem> tasks)
+        {
+            _context.TaskItems.RemoveRange(tasks);
+            return await _context.SaveChangesAsync();
+        }
+
         public async Task<(List<TaskItem> Items, int Total)> SearchAsync(Guid userId, Guid? teamId, string? search, Guid? assigneeId, PaginationParams? pagination = null)
         {
             var query = _context.TaskItems
@@ -79,5 +91,41 @@ namespace TaskFlowBackend.Repository
             => await _context.Users
                 .Where(u => userIds.Contains(u.Id))
                 .ToListAsync();
+
+        public async Task<List<TaskItem>> GetUnarchivedTasksOlderthanThresold(Guid statusId, DateTime cutoff, int batchSize, CancellationToken ct = default)
+            => await _context.TaskItems
+                .IgnoreQueryFilters()
+                .Where(t => t.Status.IsArchievable && t.UpdatedAt < cutoff && t.IsArchived != true)
+                .OrderBy(t => t.UpdatedAt)
+                .Take(batchSize)
+                .ToListAsync(ct);
+
+        public async Task UpdateTasksAsArchivedAsync(List<TaskItem> tasks, CancellationToken ct = default)
+        {
+            foreach (var task in tasks)
+            {
+                task.IsArchived = true;
+                task.ArchivedAt = DateTime.UtcNow;
+            }
+
+            _context.TaskItems.UpdateRange(tasks);
+            await _context.SaveChangesAsync(ct);
+        }
+
+        public async Task<List<TaskItem>> GetTasksByIdsAsync(IEnumerable<Guid> taskIds, CancellationToken ct = default)
+        {
+            return await _context.TaskItems
+                .Where(t => taskIds.Contains(t.Id))
+                .ToListAsync(ct);
+        }
+
+        public async Task<List<Guid>> GetArchievedTasks()
+        {
+            return await _context.TaskItems
+                .IgnoreQueryFilters()
+                .Where(t => t.IsArchived == true)
+                .Select(t => t.Id)
+                .ToListAsync();
+        }
     }
 }

@@ -21,6 +21,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddDbContext<ArchiveDBContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("ArchiveConnection")));
+
 // Redis Configuration
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
