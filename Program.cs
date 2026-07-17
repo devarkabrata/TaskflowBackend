@@ -118,6 +118,7 @@ builder.Services.AddScoped<ITeamInvitationRepository, TeamInvitationRepository>(
 builder.Services.AddScoped<IBoardStatusRepository, BoardStatusRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IMigrateTasksRepository, MigrateTasksRepository>();
+builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 
 // ==== APP Services ====
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -130,6 +131,7 @@ builder.Services.AddScoped<IBoardStatusService, BoardStatusService>();
 builder.Services.AddScoped<IEventPublisherService, EventPublisherService>();
 builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 builder.Services.AddScoped<ITaskMigrationService, TaskMigrationService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 
 
 builder.Services.AddControllers()

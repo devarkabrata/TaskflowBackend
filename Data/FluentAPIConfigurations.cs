@@ -124,14 +124,6 @@ namespace TaskFlowBackend.Data.Fluent
                 entity.Property(c => c.Body)
                     .IsRequired();
 
-                entity.Property(c => c.ImageUrls)
-                    .IsRequired()
-                    .HasDefaultValueSql("'{}'::text[]");
-
-                entity.Property(c => c.ImagePublicIds)
-                    .IsRequired()
-                    .HasDefaultValueSql("'{}'::text[]");
-
                 entity.Property(c => c.CreatedAt)
                     .IsRequired()
                     .HasDefaultValueSql("NOW()");
