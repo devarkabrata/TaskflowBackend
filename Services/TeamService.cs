@@ -242,6 +242,7 @@ namespace TaskFlowBackend.Services
                 UserId = m.UserId,
                 Name = m.User.Name,
                 AvatarInitials = m.User.AvatarInitials,
+                AvatarUrl = m.User.AvatarUrl ?? "",
                 Role = m.Role.ToString()
             }).ToList(),
             StatusTaskCounts = team.Tasks.GroupBy(task => task.Status.Name).ToDictionary(g => g.Key, g => g.Count()),
