@@ -49,7 +49,7 @@ namespace TaskFlowBackend.Repository
             {
                 new BoardStatus { Id = Guid.NewGuid(), TeamId = teamId, Name = "To Do", Position = 0, Description = "Tasks that need to be done", IsDeletable=false, IsArchievable=false, CreatedAt = now, UpdatedAt = now },
                 new BoardStatus { Id = Guid.NewGuid(), TeamId = teamId, Name = "In Progress", Position = 1, Description = "Tasks that are currently being worked on", IsDeletable=false, IsArchievable=false, CreatedAt = now, UpdatedAt = now },
-                new BoardStatus { Id = Guid.NewGuid(), TeamId = teamId, Name = "Done", Position = 3, Description = "Tasks that have been completed", IsDeletable=false, IsArchievable=true, CreatedAt = now, UpdatedAt = now }
+                new BoardStatus { Id = Guid.NewGuid(), TeamId = teamId, Name = "Done", Position = 2, Description = "Tasks that have been completed", IsDeletable=false, IsArchievable=true, CreatedAt = now, UpdatedAt = now }
             };
 
             await _context.BoardStatuses.AddRangeAsync(defaults);
