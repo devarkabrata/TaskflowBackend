@@ -1,0 +1,17 @@
+name: Taskflow - Cleanup Delete Archived Tasks
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # once daily, offset a few hours after mark-and-copy
+  workflow_dispatch: {}
+
+jobs:
+  cleanup-delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Greeting the user
+        run: echo "Welcome to the Task archive cleanup-delete job"
+
+      - name: Delete confirmed archived tasks
+        run: |
+          curl -s -w "\nHTTP Status: %{http_code}\n" --fail -X POST "${{ secrets.API_URL }}/migrate/task/cleanup-delete"
