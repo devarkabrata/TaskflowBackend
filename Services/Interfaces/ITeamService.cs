@@ -4,7 +4,7 @@ namespace TaskFlowBackend.Services.Interfaces
 {
     public interface ITeamService
     {
-        Task<List<TeamResponseDto>> GetMyTeamsAsync(Guid userId);
+        Task<List<TeamResponseDto>> GetMyTeamsAsync(Guid userId, bool excludeWorkspace = false);
         Task<TeamResponseDto> CreateTeamAsync(CreateTeamRequestDto dto, Guid userId);
         Task<TeamResponseDto> GetTeamAsync(Guid teamId, Guid userId);
         Task<TeamStatsDto> GetStatsAsync(Guid userId);

@@ -33,10 +33,19 @@ namespace TaskFlowBackend.Services
             _boardStatusRepo = boardStatusRepo;
         }
 
-        public async Task<List<TeamResponseDto>> GetMyTeamsAsync(Guid userId)
+        public async Task<List<TeamResponseDto>> GetMyTeamsAsync(Guid userId, bool excludeWorkspace = false)
         {
-            var workspace = await GetWorkspaceOrThrowAsync(userId);
-            var teams = await _teamRepo.GetByWorkspaceIdForUserAsync(workspace.Id, userId);
+            var teams = new List<Team>();
+            if(excludeWorkspace)
+            {
+                teams = await _teamRepo.GetByUserMembershipAsync(userId);
+                return teams.Select(MapToDto).ToList();
+            }
+            else
+            {
+                var workspace = await GetWorkspaceOrThrowAsync(userId);
+                teams = await _teamRepo.GetByWorkspaceIdForUserAsync(workspace.Id, userId);
+            }
             return teams.Select(MapToDto).ToList();
         }
 

@@ -21,10 +21,10 @@ namespace TaskFlowBackend.Controllers
         }
 
         [HttpGet]
-        public async Task<ApiResponse<List<TeamResponseDto>>> GetMyTeams()
+        public async Task<ApiResponse<List<TeamResponseDto>>> GetMyTeams([FromQuery] bool? exclude_workspace)
         {
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-            var result = await _teamService.GetMyTeamsAsync(userId);
+            var result = await _teamService.GetMyTeamsAsync(userId, exclude_workspace ?? false);
             return ApiResponse<List<TeamResponseDto>>.Success(result, "Teams fetched successfully.");
         }
 
