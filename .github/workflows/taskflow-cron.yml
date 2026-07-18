@@ -1,0 +1,18 @@
+name: Taskflow - Mark and Copy Done Tasks
+
+on:
+  schedule:
+    - cron: '0 0 * * *'    # midnight UTC
+    - cron: '0 12 * * *'   # noon UTC
+  workflow_dispatch: {}
+
+jobs:
+  mark-and-copy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Greeting the user
+        run: echo "Welcome to the Task archive mark-and-copy job"
+
+      - name: Mark and copy eligible tasks
+        run: |
+          curl -s -w "\nHTTP Status: %{http_code}\n" --fail -X POST "${{ secrets.API_URL }}/migrate/task/mark-and-copy"
