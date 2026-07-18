@@ -140,6 +140,8 @@ namespace TaskFlowBackend.Services
                 Description = status.Description,
                 Position = status.Position,
                 TotalTasks = tasks.Count(t => t.StatusId == status.Id),
+                IsArchievable = status.IsArchievable,
+                IsDeletable = status.IsDeletable,
                 Tasks = tasks.Where(t => t.StatusId == status.Id).Select(t => MapToDto(t, userLookup, false)).ToList()
             }).ToList();
 

@@ -9,6 +9,8 @@ namespace TaskFlowBackend.DTOs.Board
         public string? Description { get; set; }
         public int Position { get; set; }
         public int TotalTasks { get; set; }
+        public bool? IsArchievable { get; set; }
+        public bool? IsDeletable { get; set; }
 
         // All non-deleted tasks in this team currently on this status
         public List<TaskResponseDto> Tasks { get; set; } = new();

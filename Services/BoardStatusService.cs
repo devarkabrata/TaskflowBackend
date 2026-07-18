@@ -44,8 +44,8 @@ namespace TaskFlowBackend.Services
                 Description = request.Description,
                 Position = request.Position,
                 TeamId = request.TeamId,
-                IsArchievable = request.IsArchievable,
-                IsDeletable = true,
+                IsArchievable = request.IsArchievable ?? false,
+                IsDeletable = request.IsDeletable ?? true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -58,7 +58,8 @@ namespace TaskFlowBackend.Services
                 Description = createdStatus.Description,
                 Position = createdStatus.Position,
                 TeamId = createdStatus.TeamId,
-                IsArchievable = createdStatus.IsArchievable
+                IsArchievable = createdStatus.IsArchievable,
+                IsDeletable = createdStatus.IsDeletable
             };
         }
 

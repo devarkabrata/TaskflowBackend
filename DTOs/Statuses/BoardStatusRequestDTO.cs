@@ -13,6 +13,7 @@ namespace TaskFlowBackend.DTOs
         [Required(ErrorMessage = "TeamId is required.")]
         public Guid TeamId { get; set; }
         [Required(ErrorMessage = "Archievable status is required.")]
-        public bool IsArchievable { get; set; }
+        public bool? IsArchievable { get; set; }
+        public bool? IsDeletable { get; set; }
     }
 }
