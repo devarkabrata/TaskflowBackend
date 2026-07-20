@@ -12,7 +12,7 @@ namespace TaskFlowBackend.Controllers
         public HealthController(){}
 
         [AllowAnonymous]
-        [HttpGet]
+        [HttpHead]
         public async Task<ApiResponse<HealthResponseDTO>> CheckHealth()
         {
             var response = new HealthResponseDTO
