@@ -31,12 +31,12 @@ namespace TaskFlowBackend.Services
             _teamRepo = teamRepo;
         }
 
-        public async Task<Workspace> CreateDefaultWorkspaceAsync(Guid userId, string userName)
+        public async Task<Workspace> CreateDefaultWorkspaceAsync(Guid userId, string workspace_name)
         {
             var workspace = new Workspace
             {
                 Id = Guid.NewGuid(),
-                Name = $"{userName}'s Workspace",
+                Name = workspace_name,
                 OwnerId = userId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -231,6 +231,11 @@ namespace TaskFlowBackend.Services
             if (workspace == null)
                 throw new NotFoundException("Workspace not found.");
             return workspace;
+        }
+
+        public async Task<int> GetWorkspaceCountAsync(Guid userId)
+        {
+            return await _workspaceRepo.GetCountByOwnerIdAsync(userId);
         }
 
         private async Task<List<PeopleListItemDto>> MapMembersToDtosAsync(Guid workspaceId, List<WorkspaceMember> members)

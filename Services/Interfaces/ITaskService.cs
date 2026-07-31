@@ -16,5 +16,6 @@ namespace TaskFlowBackend.Services.Interfaces
         Task<TaskResponseDto> ChangeStatusAsync(Guid taskId, Guid statusId, Guid userId);
         Task<List<TaskItem>> MarkAndCopyEligibleTasksAsync(int batchSize, int olderThanDays, CancellationToken ct = default);
         Task<int> DeleteConfirmedArchivedTasksAsync(CancellationToken ct);
+        Task<TaskCountDTO> GetTaskCountByUser(Guid userId);
     }
 }

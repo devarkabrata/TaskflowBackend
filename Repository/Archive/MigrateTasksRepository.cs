@@ -62,5 +62,14 @@ namespace TaskFlowBackend.Repository.Archive
 
             return (await query.ToListAsync(), total);
         }
+
+        public async Task<int> GetTaskCountByUserAsync(Guid userId)
+        {
+            var tasks = await _archiveDbContext.ArchivedTaskItems
+        .Select(t => new { t.Id, t.AssigneeDetails })
+        .ToListAsync();
+
+            return tasks.Count(t => t.AssigneeDetails.Any(a => a.Id == userId));
+        }
     }
 }

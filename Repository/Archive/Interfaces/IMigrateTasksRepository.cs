@@ -9,5 +9,6 @@ namespace TaskFlowBackend.Repository.Archive.Interfaces
         Task<List<Guid>> GetConfirmedTaskIds(List<Guid> tasks, CancellationToken ct = default);
         Task<(List<ArchivedTaskItem>, int)> GetArchivedTasksAsync(Guid teamId, Guid? statusId, string? search, PaginationParams? pagination = null);
         Task<ArchivedTaskItem?> GetArchivedTaskByIdAsync(Guid taskId, CancellationToken ct = default);
+        Task<int> GetTaskCountByUserAsync(Guid userId);
     }
 }

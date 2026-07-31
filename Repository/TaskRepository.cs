@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TaskFlowBackend.Data;
 using TaskFlowBackend.Helpers.Pagination;
 using TaskFlowBackend.Models;
+using TaskFlowBackend.Repository.Archive.Interfaces;
 using TaskFlowBackend.Repository.Interfaces;
 
 namespace TaskFlowBackend.Repository
@@ -9,10 +10,12 @@ namespace TaskFlowBackend.Repository
     public class TaskRepository : ITaskRepository
     {
         private readonly AppDBContext _context;
+        private readonly IMigrateTasksRepository _migratetaskRepository;
 
-        public TaskRepository(AppDBContext context)
+        public TaskRepository(AppDBContext context, IMigrateTasksRepository migratetaskRepository)
         {
             _context = context;
+            _migratetaskRepository = migratetaskRepository;
         }
 
         public async Task<TaskItem?> GetByIdAsync(Guid taskId)
@@ -127,6 +130,17 @@ namespace TaskFlowBackend.Repository
                 .Where(t => t.IsArchived == true)
                 .Select(t => t.Id)
                 .ToListAsync();
+        }
+
+        public async Task<(int tasks, int archieve_tasks)> GetTaskCountByUserAsync(Guid userId)
+        {
+            // Active Tasks count
+            int taskCount = await _context.TaskItems.CountAsync(t => t.AssigneeIds.Contains(userId));
+
+            // Archieve Task count
+            int archieveTaskCount = await _migratetaskRepository.GetTaskCountByUserAsync(userId);
+
+            return (taskCount, archieveTaskCount);
         }
     }
 }

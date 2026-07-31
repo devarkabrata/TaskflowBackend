@@ -230,6 +230,19 @@ namespace TaskFlowBackend.Services
             return deletedCount;
         }
 
+        public async Task<TaskCountDTO> GetTaskCountByUser(Guid userId)
+        {
+            var (taskCount, archieveTaskCount) = await _taskRepo.GetTaskCountByUserAsync(userId);
+
+            var result = new TaskCountDTO
+            {
+                ActiveTasks = taskCount,
+                ArchieveTask = archieveTaskCount
+            };
+
+            return result;
+        }
+
         private static DateTime? ToUtc(DateTime? value) => value?.Kind switch
         {
             DateTimeKind.Utc => value,

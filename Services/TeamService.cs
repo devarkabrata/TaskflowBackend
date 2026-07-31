@@ -230,6 +230,11 @@ namespace TaskFlowBackend.Services
             await _memberRepo.RemoveAsync(member);
         }
 
+        public async Task<int> GetTeamCountAsync(Guid userId)
+        {
+            return await _teamRepo.GetCountByUserMembershipAsync(userId);
+        }
+
         private async Task<Workspace> GetWorkspaceOrThrowAsync(Guid userId)
         {
             var workspace = await _workspaceRepo.GetByOwnerIdAsync(userId);

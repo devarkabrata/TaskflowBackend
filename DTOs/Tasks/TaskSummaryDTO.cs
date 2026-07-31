@@ -10,4 +10,10 @@ namespace TaskFlowBackend.DTOs.Tasks
         public Guid StatusId { get; set; }
         public Guid TeamId { get; set; }
     }
+
+    public class TaskCountDTO
+    {
+        public int ActiveTasks { get; set; }
+        public int ArchieveTask { get; set; }
+    }
 }

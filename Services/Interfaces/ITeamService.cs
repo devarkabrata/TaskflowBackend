@@ -13,5 +13,6 @@ namespace TaskFlowBackend.Services.Interfaces
         Task DeleteTeamAsync(Guid teamId, Guid userId);
         Task<TeamInvitationResponseDto> InviteToTeamAsync(Guid teamId, TeamInviteRequestDto dto, Guid userId);
         Task RemoveMemberAsync(Guid teamId, Guid targetUserId, Guid requesterId);
+        Task<int> GetTeamCountAsync(Guid userId);
     }
 }

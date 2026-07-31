@@ -40,7 +40,7 @@ namespace TaskFlowBackend.Services
                 Password = dto.Password
             };
 
-            var resp = await _userService.CreateUserWithWorkspace(newUser);
+            var resp = await _userService.CreateUserWithWorkspace(newUser, dto.WorkspaceName);
 
             return resp.createdUser;
         }

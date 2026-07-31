@@ -11,5 +11,6 @@ namespace TaskFlowBackend.Repository.Interfaces
         Task<Team> CreateAsync(Team team);
         Task<Team> UpdateAsync(Team team);
         Task DeleteAsync(Team team);
+        Task<int> GetCountByUserMembershipAsync(Guid userId);
     }
 }

@@ -20,6 +20,9 @@ namespace TaskFlowBackend.Repository
         public async Task<Workspace?> GetByOwnerIdAsync(Guid ownerId)
             => await _context.Workspaces.FirstOrDefaultAsync(w => w.OwnerId == ownerId);
 
+        public async Task<int> GetCountByOwnerIdAsync(Guid ownerId)
+            => await _context.Workspaces.CountAsync(w => w.OwnerId == ownerId);
+
         public async Task<Workspace> CreateAsync(Workspace workspace)
         {
             await _context.Workspaces.AddAsync(workspace);

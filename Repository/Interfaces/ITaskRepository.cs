@@ -18,5 +18,6 @@ namespace TaskFlowBackend.Repository.Interfaces
         Task UpdateTasksAsArchivedAsync(List<TaskItem> tasks, CancellationToken ct = default);
         Task<List<Guid>> GetArchievedTasks();
         Task<List<TaskItem>> GetTasksByIdsAsync(IEnumerable<Guid> taskIds, CancellationToken ct = default);
+        Task<(int tasks, int archieve_tasks)> GetTaskCountByUserAsync(Guid userId);
     }
 }

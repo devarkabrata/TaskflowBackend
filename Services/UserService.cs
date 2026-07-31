@@ -1,4 +1,5 @@
 using TaskFlowBackend.DTOs.Auth;
+using TaskFlowBackend.DTOs.Tasks;
 using TaskFlowBackend.DTOs.Users;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Helpers.Pagination;
@@ -13,12 +14,16 @@ namespace TaskFlowBackend.Services
         private readonly IUserRepository _userRepo;
         private readonly IWorkspaceService _workspaceService;
         private readonly IAvatarStorageService _avatarStorageService;
+        private readonly ITaskService _taskService;
+        private readonly ITeamService _teamService;
 
-        public UserService(IUserRepository userRepo, IWorkspaceService workspaceService, IAvatarStorageService avatarStorageService)
+        public UserService(IUserRepository userRepo, IWorkspaceService workspaceService, IAvatarStorageService avatarStorageService, ITaskService taskService, ITeamService teamService)
         {
             _userRepo = userRepo;
             _workspaceService = workspaceService;
             _avatarStorageService = avatarStorageService;
+            _taskService = taskService;
+            _teamService = teamService;
         }
 
         // Method for computing User Initials
@@ -125,7 +130,7 @@ namespace TaskFlowBackend.Services
             return result;
         }
 
-        public async Task<(User? createdUser, Workspace? workspace)> CreateUserWithWorkspace(CreateUserRequestDto user)
+        public async Task<(User? createdUser, Workspace? workspace)> CreateUserWithWorkspace(CreateUserRequestDto user, string workspace_name)
         {
             // Create the user first
             var createdUser = await CreateUser(user);
@@ -136,9 +141,28 @@ namespace TaskFlowBackend.Services
             }
 
             // Create and add that member to the owrkspace
-            var workspace = await _workspaceService.CreateDefaultWorkspaceAsync(createdUser.Id, createdUser.Name);
+            var workspace = await _workspaceService.CreateDefaultWorkspaceAsync(createdUser.Id, workspace_name);
 
             return (createdUser, workspace);
+        }
+
+        public async Task<StatResponseDto> GetUserStatsAsync(Guid user_id)
+        {
+            // Get Workspace count
+            int workspace_count = await _workspaceService.GetWorkspaceCountAsync(user_id);
+
+            // Get Tasks Count
+            TaskCountDTO task = await _taskService.GetTaskCountByUser(user_id);
+
+            // Get Teams count
+            int teams_count = await _teamService.GetTeamCountAsync(user_id);
+
+            return new StatResponseDto
+            {
+                TaskCount=task,
+                TeamCount=teams_count,
+                WorkspaceCount=workspace_count
+            };
         }
     }
 }

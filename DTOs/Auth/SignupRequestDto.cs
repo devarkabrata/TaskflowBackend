@@ -24,5 +24,9 @@ namespace TaskFlowBackend.DTOs.Auth
         // Resolved designation — if user selected "Other", send the free-text value here
         [StringLength(200, ErrorMessage = "Title must not exceed 200 characters.")]
         public string? Title { get; set; }
+
+        [Required(ErrorMessage = "Workspace Name is required.")]
+        [StringLength(50, MinimumLength = 3, ErrorMessage = "Workspace Nam must be at least 3 characters.")]
+        public string WorkspaceName { get; set; } = string.Empty;
     }
 }
