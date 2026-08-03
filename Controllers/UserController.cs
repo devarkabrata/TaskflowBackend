@@ -94,5 +94,39 @@ namespace TaskFlowBackend.Controllers
 
             return ApiResponse<UserResponseDto>.Success(response, "User updated successfully.");
         }
+
+        [HttpPut("{id:guid}/settings")]
+        public async Task<ApiResponse<SettingsResponseDto>> UpdateUserSettings(Guid id, [FromBody] UpdateUserSettingsRequestDto userSettingsDto)
+        {
+            var result = await _userService.UpdateUserSettings(id, userSettingsDto);
+
+            var response = new SettingsResponseDto
+            {
+                Id = result!.Id,
+                UserId = result.UserId,
+                DaysToArchieve = result.DaysToArchieve,
+                CreatedAt = result.CreatedAt,
+                UpdatedAt = result.UpdatedAt
+            };
+
+            return ApiResponse<SettingsResponseDto>.Success(response, "User settings updated successfully.");
+        }
+
+        [HttpGet("{id:guid}/settings")]
+        public async Task<ApiResponse<SettingsResponseDto>> GetUserSettings(Guid id)
+        {
+            var result = await _userService.GetUserSettings(id);
+
+            var response = new SettingsResponseDto
+            {
+                Id = result!.Id,
+                UserId = result.UserId,
+                DaysToArchieve = result.DaysToArchieve,
+                CreatedAt = result.CreatedAt,
+                UpdatedAt = result.UpdatedAt
+            };
+
+            return ApiResponse<SettingsResponseDto>.Success(response, "User settings fetched successfully.");
+        }
     }
 }

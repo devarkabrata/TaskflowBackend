@@ -16,4 +16,10 @@ namespace TaskFlowBackend.DTOs.Users
 
         public string? AvatarPublicId { get; set; }
     }
+
+    public class UpdateUserSettingsRequestDto
+    {
+        [Required(ErrorMessage = "Need to specify Days to Archieve")]
+        public int DaysToArchieve { get; set; }
+    }
 }

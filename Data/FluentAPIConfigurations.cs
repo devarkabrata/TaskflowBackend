@@ -442,6 +442,34 @@ namespace TaskFlowBackend.Data.Fluent
             });
         }
 
+        public static void ConfigureUserSettings(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Settings>(entity =>
+            {
+                entity.ToTable("settings");
+
+                entity.HasKey(u => u.Id);
+                entity.Property(u => u.Id)
+                    .HasDefaultValueSql("gen_random_uuid()");
+
+                entity.Property(u => u.DaysToArchieve)
+                    .IsRequired();
+
+                entity.Property(u => u.CreatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.Property(u => u.UpdatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.HasOne(s => s.User)
+                    .WithOne(u => u.Settings)
+                    .HasForeignKey<Settings>(s => s.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+        }
+
         public static void ConfigureArchivedTaskItem(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ArchivedTaskItem>(entity =>

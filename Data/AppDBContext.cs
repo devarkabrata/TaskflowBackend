@@ -12,6 +12,7 @@ namespace TaskFlowBackend.Data
         public AppDBContext(DbContextOptions<AppDBContext> options) : base(options) { }
 
         public DbSet<User> Users => Set<User>();
+        public DbSet<Settings> Settings => Set<Settings>();
         public DbSet<Workspace> Workspaces => Set<Workspace>();
         public DbSet<WorkspaceMember> WorkspaceMembers => Set<WorkspaceMember>();
         public DbSet<WorkspaceInvitation> WorkspaceInvitations => Set<WorkspaceInvitation>();
@@ -28,6 +29,7 @@ namespace TaskFlowBackend.Data
 
             // Fluent API configurations
             FluentAPIConfigurations.ConfigureUser(modelBuilder);
+            FluentAPIConfigurations.ConfigureUserSettings(modelBuilder);
             FluentAPIConfigurations.ConfigureWorkspace(modelBuilder);
             FluentAPIConfigurations.ConfigureWorkspaceMember(modelBuilder);
             FluentAPIConfigurations.ConfigureWorkspaceInvitation(modelBuilder);

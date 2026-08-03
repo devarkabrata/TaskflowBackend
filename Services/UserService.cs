@@ -59,6 +59,28 @@ namespace TaskFlowBackend.Services
             return result;
         }
 
+        public async Task<Settings?> CreateDefaultUserSettings(Guid id)
+        {
+            var payload = new Settings
+            {
+                Id = Guid.NewGuid(),
+                UserId = id,
+                DaysToArchieve = 2,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userRepo.CreateUserSettingsAsync(payload);
+
+            return result;
+        }
+
+        public async Task<Settings?> GetUserSettings(Guid id)
+        {
+            var result = await _userRepo.GetUserSettingsByIdAsync(id);
+            return result;
+        }
+
         public async Task<User?> UpdateUser(Guid id, UpdateUserRequestDto user)
         {
             var existingUser = await _userRepo.GetUserByIdAsync(id);
@@ -77,6 +99,22 @@ namespace TaskFlowBackend.Services
 
             return result;
         }
+
+        public async Task<Settings?> UpdateUserSettings(Guid id, UpdateUserSettingsRequestDto settings)
+        {
+            var existingUserSettings = await _userRepo.GetUserSettingsByIdAsync(id);
+            if (existingUserSettings == null)
+            {
+                return null;
+            }
+
+            existingUserSettings.DaysToArchieve = settings.DaysToArchieve;
+            existingUserSettings.UpdatedAt = DateTime.UtcNow;
+
+            var result = await _userRepo.UpdateUserSettingsAsync(existingUserSettings);
+
+            return result;
+        } 
 
         public async Task<User> UpdateAvatarAsync(Guid callerUserId, IFormFile file)
         {
@@ -139,6 +177,9 @@ namespace TaskFlowBackend.Services
             {
                 return (null, null);
             }
+
+            // Create a default settings
+            await CreateDefaultUserSettings(createdUser.Id);
 
             // Create and add that member to the owrkspace
             var workspace = await _workspaceService.CreateDefaultWorkspaceAsync(createdUser.Id, workspace_name);

@@ -11,4 +11,13 @@ namespace TaskFlowBackend.DTOs.Users
         public List<UserWorkspaceMembershipDto> Workspaces { get; set; } = new();
         public List<UserTeamMembershipDto> Teams { get; set; } = new();
     }
+
+    public class SettingsResponseDto
+    {
+        public Guid Id { get; set; }
+        public Guid UserId { get; set; }
+        public int DaysToArchieve { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
 }

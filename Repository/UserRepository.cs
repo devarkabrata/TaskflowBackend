@@ -59,6 +59,12 @@ namespace TaskFlowBackend.Repository
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 
+        // Getting User Settings
+        public async Task<Settings?> GetUserSettingsByIdAsync(Guid id)
+        {
+            return await _context.Settings.FirstOrDefaultAsync(s => s.UserId == id);
+        }
+
         // Creating user
         public async Task<User?> CreateUserAsync(User user)
         {
@@ -73,6 +79,21 @@ namespace TaskFlowBackend.Repository
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
             return user;
+        }
+
+        // Update user settings
+        public async Task<Settings?> UpdateUserSettingsAsync(Settings settings)
+        {
+            _context.Settings.Update(settings);
+            await _context.SaveChangesAsync();
+            return settings;
+        }
+
+        public async Task<Settings?> CreateUserSettingsAsync(Settings settings)
+        {
+            await _context.Settings.AddAsync(settings);
+            await _context.SaveChangesAsync();
+            return settings;
         }
 
         // Deleting user

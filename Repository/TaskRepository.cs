@@ -98,7 +98,8 @@ namespace TaskFlowBackend.Repository
         public async Task<List<TaskItem>> GetUnarchivedTasksOlderthanThresold(Guid statusId, DateTime cutoff, int batchSize, CancellationToken ct = default)
             => await _context.TaskItems
                 .IgnoreQueryFilters()
-                .Where(t => t.Status.IsArchievable && t.UpdatedAt < cutoff && t.IsArchived != true)
+                .Include(i => i.Creator)
+                .Where(t => t.Status.IsArchievable && t.UpdatedAt < DateTime.UtcNow.AddDays(-t.Creator.Settings.DaysToArchieve) && t.IsArchived != true)
                 .OrderBy(t => t.UpdatedAt)
                 .Take(batchSize)
                 .ToListAsync(ct);

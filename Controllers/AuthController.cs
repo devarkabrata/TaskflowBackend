@@ -128,5 +128,31 @@ namespace TaskFlowBackend.Controllers
 
             return ApiResponse<StatResponseDto>.Success(response, "User stats fetched successfully.");
         }
+
+        [Authorize]
+        [HttpGet("me/settings")]
+        public async Task<ApiResponse<SettingsResponseDto>> GetUserSettingsById()
+        {
+            var subClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            if (string.IsNullOrEmpty(subClaim))
+                throw new UnauthorizedException("Invalid or missing token claims.");
+
+            var id = Guid.Parse(subClaim);
+            var result = await _userService.GetUserSettings(id);
+
+            if (result == null)
+                throw new NotFoundException("User settings not found.");
+
+            var response = new SettingsResponseDto
+            {
+                Id = result.Id,
+                UserId = result.UserId,
+                DaysToArchieve = result.DaysToArchieve,
+                CreatedAt = result.CreatedAt,
+                UpdatedAt = result.UpdatedAt
+            };
+
+            return ApiResponse<SettingsResponseDto>.Success(response, "User settings fetched successfully.");
+        }
     }
 }
