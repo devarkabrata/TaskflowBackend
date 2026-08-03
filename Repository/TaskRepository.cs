@@ -99,7 +99,10 @@ namespace TaskFlowBackend.Repository
             => await _context.TaskItems
                 .IgnoreQueryFilters()
                 .Include(i => i.Creator)
-                .Where(t => t.Status.IsArchievable && t.UpdatedAt < DateTime.UtcNow.AddDays(-t.Creator.Settings.DaysToArchieve) && t.IsArchived != true)
+                .Include(i => i.Team)
+                .ThenInclude(tm => tm.Admin)
+                .ThenInclude(admin => admin.Settings)
+                .Where(t => t.Status.IsArchievable && t.UpdatedAt < DateTime.UtcNow.AddDays(-t.Team.Admin.Settings.DaysToArchieve) && t.IsArchived != true)
                 .OrderBy(t => t.UpdatedAt)
                 .Take(batchSize)
                 .ToListAsync(ct);
