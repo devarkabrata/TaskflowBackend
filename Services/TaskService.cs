@@ -1,6 +1,8 @@
 using TaskFlowBackend.DTOs.Board;
+using TaskFlowBackend.DTOs.Events;
 using TaskFlowBackend.DTOs.Tasks;
 using TaskFlowBackend.DTOs.Tasks.Archive;
+using TaskFlowBackend.Helpers;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Helpers.Pagination;
@@ -17,13 +19,23 @@ namespace TaskFlowBackend.Services
         private readonly ITeamRepository _teamRepo;
         private readonly IBoardStatusRepository _boardStatusRepo;
         private readonly IMigrateTasksRepository _migrateTasksRepo;
+        private readonly IUserRepository _userRepo;
+        private readonly IEventPublisherService _eventPublisher;
 
-        public TaskService(ITaskRepository taskRepo, ITeamRepository teamRepo, IBoardStatusRepository boardStatusRepo, IMigrateTasksRepository migrateTasksRepo)
+        public TaskService(
+            ITaskRepository taskRepo,
+            ITeamRepository teamRepo,
+            IBoardStatusRepository boardStatusRepo,
+            IMigrateTasksRepository migrateTasksRepo,
+            IUserRepository userRepo,
+            IEventPublisherService eventPublisher)
         {
             _taskRepo = taskRepo;
             _teamRepo = teamRepo;
             _boardStatusRepo = boardStatusRepo;
             _migrateTasksRepo = migrateTasksRepo;
+            _userRepo = userRepo;
+            _eventPublisher = eventPublisher;
         }
 
         public async Task<TaskResponseDto> CreateTaskAsync(CreateTaskRequestDto dto, Guid userId)
@@ -56,7 +68,32 @@ namespace TaskFlowBackend.Services
 
             var created = await _taskRepo.CreateAsync(task);
             var reloaded = await _taskRepo.GetByIdAsync(created.Id);
+
+            // await PublishTaskCreatedEventsAsync(task, team, userId);
+
             return await MapToDtoAsync(reloaded!);
+        }
+
+        private async Task PublishTaskCreatedEventsAsync(TaskItem task, Team team, Guid creatorId)
+        {
+            var creator = await _userRepo.GetUserByIdAsync(creatorId);
+
+            foreach (var assigneeId in task.AssigneeIds)
+            {
+                var assignee = await _userRepo.GetUserByIdAsync(assigneeId);
+                if (assignee == null) continue;
+
+                await _eventPublisher.PublishAsync(RoutingKeys.TaskCreated, new TaskCreatedEvent
+                {
+                    To = assignee.Email,
+                    From = creator?.Email,
+                    TaskTitle = task.Title,
+                    TaskId = task.Id.ToString(),
+                    TeamName = team.Name,
+                    ExpirationDate = task.ExpectedCompletion?.ToString("o") ?? string.Empty,
+                    CreatedBy = creator?.Name ?? string.Empty
+                });
+            }
         }
 
         public async Task<TaskResponseDto> GetTaskAsync(Guid taskId, Guid userId)

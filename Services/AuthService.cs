@@ -1,5 +1,7 @@
 using TaskFlowBackend.DTOs;
 using TaskFlowBackend.DTOs.Auth;
+using TaskFlowBackend.DTOs.Events;
+using TaskFlowBackend.Helpers;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Models;
@@ -14,13 +16,15 @@ namespace TaskFlowBackend.Services
         private readonly IUserRepository _userRepo;
         private readonly IUserService _userService;
         private readonly IRedisCacheService _redisCache;
+        private readonly IEventPublisherService _eventPublisher;
 
-        public AuthService(ITokenService tokenService, IUserRepository userRepo, IUserService userService, IRedisCacheService redisCache)
+        public AuthService(ITokenService tokenService, IUserRepository userRepo, IUserService userService, IRedisCacheService redisCache, IEventPublisherService eventPublisher)
         {
             _tokenService = tokenService;
             _userRepo = userRepo;
             _userService = userService;
             _redisCache = redisCache;
+            _eventPublisher = eventPublisher;
         }
 
         public async Task<User?> SignupAsync(SignupRequestDto dto)
@@ -41,6 +45,13 @@ namespace TaskFlowBackend.Services
             };
 
             var resp = await _userService.CreateUserWithWorkspace(newUser, dto.WorkspaceName);
+
+            await _eventPublisher.PublishAsync(RoutingKeys.WelcomeEmail, new WelcomeEmailEvent
+            {
+                To = resp.createdUser!.Email,
+                UserName = resp.createdUser.Name,
+                WelcomeMessage = $"Welcome to TaskFlow, {resp.createdUser.Name}! We're excited to have you on board. Your workspace is ready for you to start, and we can't wait to see what you'll accomplish. If you have any questions or need assistance, our support team is here to help. Enjoy your journey with TaskFlow!"
+            });
 
             return resp.createdUser;
         }

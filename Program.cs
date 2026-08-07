@@ -128,7 +128,7 @@ builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IBoardStatusService, BoardStatusService>();
-builder.Services.AddScoped<IEventPublisherService, EventPublisherService>();
+builder.Services.AddSingleton<IEventPublisherService, EventPublisherService>();
 builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 builder.Services.AddScoped<ITaskMigrationService, TaskMigrationService>();
 builder.Services.AddScoped<ICommentService, CommentService>();

@@ -36,7 +36,7 @@ APP Progress/       → Per-controller API endpoint tracking (markdown)
 | Scoped | ITokenService | TokenService |
 | Scoped | IAuthService | AuthService |
 | Scoped | IUserService | UserService |
-| Scoped | IEventPublisherService | EventPublisherService |
+| Singleton | IEventPublisherService | EventPublisherService (holds one long-lived RabbitMQ channel, reused across all publishes and guarded by a `SemaphoreSlim`) |
 
 When adding a new service: register `IFoo, FooService` — never register the concrete class alone.
 

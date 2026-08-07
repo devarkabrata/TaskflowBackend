@@ -73,7 +73,7 @@ namespace TaskFlowBackend.Controllers
         {
             Guid userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
             var workspace = await _workspaceService.GetWorkspaceOrThrowAsync(userId);
-            var result = await _workspaceService.AddMembersToWorkspaceAsync(workspace.Id, userIds.UserIds);
+            var result = await _workspaceService.AddMembersToWorkspaceAsync(workspace.Id, userIds.UserIds, userId);
             return ApiResponse<List<Guid>>.Success(result, "Members enlisted successfully.");
         }
     }

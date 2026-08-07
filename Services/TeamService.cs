@@ -1,5 +1,7 @@
+using TaskFlowBackend.DTOs.Events;
 using TaskFlowBackend.DTOs.Teams;
 using TaskFlowBackend.Enums;
+using TaskFlowBackend.Helpers;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Models;
@@ -16,6 +18,8 @@ namespace TaskFlowBackend.Services
         private readonly IWorkspaceRepository _workspaceRepo;
         private readonly IWorkspaceMemberRepository _workspaceMemberRepo;
         private readonly IBoardStatusRepository _boardStatusRepo;
+        private readonly IUserRepository _userRepo;
+        private readonly IEventPublisherService _eventPublisher;
 
         public TeamService(
             ITeamRepository teamRepo,
@@ -23,7 +27,9 @@ namespace TaskFlowBackend.Services
             ITeamInvitationRepository invitationRepo,
             IWorkspaceRepository workspaceRepo,
             IWorkspaceMemberRepository workspaceMemberRepo,
-            IBoardStatusRepository boardStatusRepo)
+            IBoardStatusRepository boardStatusRepo,
+            IUserRepository userRepo,
+            IEventPublisherService eventPublisher)
         {
             _teamRepo = teamRepo;
             _memberRepo = memberRepo;
@@ -31,6 +37,8 @@ namespace TaskFlowBackend.Services
             _workspaceRepo = workspaceRepo;
             _workspaceMemberRepo = workspaceMemberRepo;
             _boardStatusRepo = boardStatusRepo;
+            _userRepo = userRepo;
+            _eventPublisher = eventPublisher;
         }
 
         public async Task<List<TeamResponseDto>> GetMyTeamsAsync(Guid userId, bool excludeWorkspace = false)
@@ -87,7 +95,36 @@ namespace TaskFlowBackend.Services
             await _boardStatusRepo.SeedDefaultsAsync(created.Id);
 
             var fullTeam = await _teamRepo.GetByIdAsync(created.Id);
+
+            // await PublishTeamCreatedEventsAsync(created, workspace, members, userId);
+
             return MapToDto(fullTeam!);
+        }
+
+        private async Task PublishTeamCreatedEventsAsync(Team team, Workspace workspace, List<TeamMember> members, Guid creatorId)
+        {
+            var creator = await _userRepo.GetUserByIdAsync(creatorId);
+
+            await _eventPublisher.PublishAsync(RoutingKeys.TeamCreated, new TeamCreatedEvent
+            {
+                To = creator?.Email ?? string.Empty,
+                TeamName = team.Name,
+                CreatedBy = creator?.Name ?? string.Empty
+            });
+
+            foreach (var member in members.Where(m => m.UserId != creatorId))
+            {
+                var user = await _userRepo.GetUserByIdAsync(member.UserId);
+                if (user == null) continue;
+
+                await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
+                {
+                    To = user.Email,
+                    WorkspaceName = workspace.Name,
+                    MemberName = user.Name,
+                    InvitedBy = creator?.Name ?? string.Empty
+                });
+            }
         }
 
         public async Task<TeamResponseDto> GetTeamAsync(Guid teamId, Guid userId)
@@ -165,8 +202,31 @@ namespace TaskFlowBackend.Services
 
             await _memberRepo.SyncAsync(toAdd, toRemove, toUpdate);
 
+            // await PublishMemberAddedEventsAsync(toAdd, workspace, userId);
+
             var refreshed = await _teamRepo.GetByIdAsync(teamId);
             return MapToDto(refreshed!);
+        }
+
+        private async Task PublishMemberAddedEventsAsync(List<TeamMember> added, Workspace workspace, Guid invitedByUserId)
+        {
+            if (added.Count == 0) return;
+
+            var inviter = await _userRepo.GetUserByIdAsync(invitedByUserId);
+
+            foreach (var member in added)
+            {
+                var user = await _userRepo.GetUserByIdAsync(member.UserId);
+                if (user == null) continue;
+
+                await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
+                {
+                    To = user.Email,
+                    WorkspaceName = workspace.Name,
+                    MemberName = user.Name,
+                    InvitedBy = inviter?.Name ?? string.Empty
+                });
+            }
         }
 
         public async Task DeleteTeamAsync(Guid teamId, Guid userId)

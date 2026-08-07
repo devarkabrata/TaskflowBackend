@@ -1,5 +1,7 @@
+using TaskFlowBackend.DTOs.Events;
 using TaskFlowBackend.DTOs.Workspaces;
 using TaskFlowBackend.Enums;
+using TaskFlowBackend.Helpers;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Helpers.Pagination;
@@ -16,19 +18,22 @@ namespace TaskFlowBackend.Services
         private readonly IWorkspaceInvitationRepository _invitationRepo;
         private readonly IUserRepository _userRepo;
         private readonly ITeamRepository _teamRepo;
+        private readonly IEventPublisherService _eventPublisher;
 
         public WorkspaceService(
             IWorkspaceRepository workspaceRepo,
             IWorkspaceMemberRepository memberRepo,
             IWorkspaceInvitationRepository invitationRepo,
             IUserRepository userRepo,
-            ITeamRepository teamRepo)
+            ITeamRepository teamRepo,
+            IEventPublisherService eventPublisher)
         {
             _workspaceRepo = workspaceRepo;
             _memberRepo = memberRepo;
             _invitationRepo = invitationRepo;
             _userRepo = userRepo;
             _teamRepo = teamRepo;
+            _eventPublisher = eventPublisher;
         }
 
         public async Task<Workspace> CreateDefaultWorkspaceAsync(Guid userId, string workspace_name)
@@ -185,13 +190,29 @@ namespace TaskFlowBackend.Services
             };
         }
 
-        public async Task<List<Guid>> AddMembersToWorkspaceAsync(Guid workspaceId, List<Guid> userIds)
+        public async Task<List<Guid>> AddMembersToWorkspaceAsync(Guid workspaceId, List<Guid> userIds, Guid invitedByUserId)
         {
             var workspace = await _workspaceRepo.GetByIdAsync(workspaceId);
             if (workspace == null)
                 throw new NotFoundException("Workspace not found.");
 
             var added = await _memberRepo.BulkAddAsync(workspaceId, userIds);
+
+            var inviter = await _userRepo.GetUserByIdAsync(invitedByUserId);
+            foreach (var member in added)
+            {
+                var user = await _userRepo.GetUserByIdAsync(member.UserId);
+                if (user == null) continue;
+
+                await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
+                {
+                    To = user.Email,
+                    WorkspaceName = workspace.Name,
+                    MemberName = user.Name,
+                    InvitedBy = inviter?.Name ?? string.Empty
+                });
+            }
+
             return added.Select(m => m.UserId).ToList();
         }
 
