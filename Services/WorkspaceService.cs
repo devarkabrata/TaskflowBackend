@@ -207,6 +207,7 @@ namespace TaskFlowBackend.Services
                 await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
                 {
                     To = user.Email,
+                    From = RoutingKeys.FromEmail,
                     WorkspaceName = workspace.Name,
                     MemberName = user.Name,
                     InvitedBy = inviter?.Name ?? string.Empty

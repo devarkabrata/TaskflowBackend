@@ -48,6 +48,7 @@ namespace TaskFlowBackend.Services
 
             await _eventPublisher.PublishAsync(RoutingKeys.WelcomeEmail, new WelcomeEmailEvent
             {
+                From = RoutingKeys.FromEmail,
                 To = resp.createdUser!.Email,
                 UserName = resp.createdUser.Name,
                 WelcomeMessage = $"Welcome to TaskFlow, {resp.createdUser.Name}! We're excited to have you on board. Your workspace is ready for you to start, and we can't wait to see what you'll accomplish. If you have any questions or need assistance, our support team is here to help. Enjoy your journey with TaskFlow!"
