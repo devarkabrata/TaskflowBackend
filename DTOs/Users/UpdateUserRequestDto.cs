@@ -22,4 +22,15 @@ namespace TaskFlowBackend.DTOs.Users
         [Required(ErrorMessage = "Need to specify Days to Archieve")]
         public int DaysToArchieve { get; set; }
     }
+
+    public class UpdateUserPasswordRequestDto
+    {
+        [Required(ErrorMessage = "New password is required.")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "New password must be between 6 and 100 characters.")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirm password is required.")]
+        [Compare("NewPassword", ErrorMessage = "Confirm password does not match the new password.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
 }

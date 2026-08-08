@@ -128,5 +128,23 @@ namespace TaskFlowBackend.Controllers
 
             return ApiResponse<SettingsResponseDto>.Success(response, "User settings fetched successfully.");
         }
+
+        [HttpPut("{id:guid}/password")]
+        public async Task<ApiResponse<UserResponseDto>> UpdateUserPassword(Guid id, [FromBody] UpdateUserPasswordRequestDto userPasswordDto)
+        {
+            var result = await _userService.UpdateUserPassword(id, userPasswordDto);
+
+            var response = new UserResponseDto
+            {
+                Id = result!.Id,
+                Name = result.Name,
+                Email = result.Email,
+                Title = result.Title,
+                AvatarInitials = result.AvatarInitials,
+                AvatarUrl = result.AvatarUrl,
+            };
+
+            return ApiResponse<UserResponseDto>.Success(response, "User password updated successfully.");
+        }
     }
 }

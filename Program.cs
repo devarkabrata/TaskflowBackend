@@ -11,6 +11,7 @@ using TaskFlowBackend.Repository;
 using TaskFlowBackend.Repository.Interfaces;
 using TaskFlowBackend.Services;
 using TaskFlowBackend.Services.Interfaces;
+using StackExchange.Redis;
 using Microsoft.AspNetCore.Mvc;
 using RabbitMQ.Client;
 using TaskFlowBackend.Repository.Archive.Interfaces;
@@ -26,6 +27,13 @@ builder.Services.AddDbContext<AppDBContext>(options =>
 
 builder.Services.AddDbContext<ArchiveDBContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("ArchiveConnection")));
+
+// Redis Configuration
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    string connectionString = builder.Configuration.GetConnectionString("RedisConnection") ?? "";
+    return ConnectionMultiplexer.Connect(connectionString);
+});
 
 // RabbitMQ Configuration
 builder.Services.AddSingleton<IConnection>(sp =>
@@ -97,7 +105,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // ========== Services ==========
 
 // ==== DB Service ====
-builder.Services.AddSingleton<IRedisCacheService, InMemoryCacheService>();
+builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 
 // ==== Repository Services ====
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -124,6 +132,7 @@ builder.Services.AddSingleton<IEventPublisherService, EventPublisherService>();
 builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 builder.Services.AddScoped<ITaskMigrationService, TaskMigrationService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IOtpService, OtpService>();
 
 
 builder.Services.AddControllers()

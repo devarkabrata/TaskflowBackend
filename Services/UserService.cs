@@ -100,6 +100,23 @@ namespace TaskFlowBackend.Services
             return result;
         }
 
+        public async Task<User?> UpdateUserPassword(Guid id, UpdateUserPasswordRequestDto user)
+        {
+            var existingUser = await _userRepo.GetUserByIdAsync(id);
+            if (existingUser == null)
+            {
+                return null;
+            }
+
+            // Hash the new password
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(user.NewPassword);
+            existingUser.PasswordHash = hashedPassword;
+
+            var result = await _userRepo.UpdateUserAsync(existingUser);
+
+            return result;
+        }
+
         public async Task<Settings?> UpdateUserSettings(Guid id, UpdateUserSettingsRequestDto settings)
         {
             var existingUserSettings = await _userRepo.GetUserSettingsByIdAsync(id);
