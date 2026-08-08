@@ -2,7 +2,7 @@ namespace TaskFlowBackend.Helpers
 {
     public static class RoutingKeys
     {
-        public const string FromEmail = "chandra.arkabrata@gmail.com";
+        public const string FromEmail = "try.soumyabroto@gmail.com";
         public const string TaskCreated = "email.task-created";
         public const string MemberAdded = "email.member-added";
         public const string TeamCreated = "email.team-created";
