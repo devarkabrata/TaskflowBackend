@@ -25,6 +25,8 @@ namespace TaskFlowBackend.DTOs.Users
 
     public class UpdateUserPasswordRequestDto
     {
+        [Required(ErrorMessage = "Email is required.")]
+        public string Email { get; set; } = string.Empty;
         [Required(ErrorMessage = "New password is required.")]
         [StringLength(100, MinimumLength = 6, ErrorMessage = "New password must be between 6 and 100 characters.")]
         public string NewPassword { get; set; } = string.Empty;

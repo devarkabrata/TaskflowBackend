@@ -19,6 +19,6 @@ namespace TaskFlowBackend.Services.Interfaces
         Task<StatResponseDto> GetUserStatsAsync(Guid user_id);
         Task<Settings?> CreateDefaultUserSettings(Guid id);
         Task<Settings?> GetUserSettings(Guid id);
-        Task<User?> UpdateUserPassword(Guid id, UpdateUserPasswordRequestDto user);
+        Task<User?> UpdateUserPassword(string email, string newPassword);
     }
 }

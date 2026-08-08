@@ -129,10 +129,10 @@ namespace TaskFlowBackend.Controllers
             return ApiResponse<SettingsResponseDto>.Success(response, "User settings fetched successfully.");
         }
 
-        [HttpPut("{id:guid}/password")]
-        public async Task<ApiResponse<UserResponseDto>> UpdateUserPassword(Guid id, [FromBody] UpdateUserPasswordRequestDto userPasswordDto)
+        [HttpPut("change/password")]
+        public async Task<ApiResponse<UserResponseDto>> UpdateUserPassword([FromBody] UpdateUserPasswordRequestDto userPasswordDto)
         {
-            var result = await _userService.UpdateUserPassword(id, userPasswordDto);
+            var result = await _userService.UpdateUserPassword(userPasswordDto.Email, userPasswordDto.NewPassword);
 
             var response = new UserResponseDto
             {
