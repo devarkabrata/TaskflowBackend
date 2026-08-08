@@ -105,7 +105,7 @@ namespace TaskFlowBackend.Services
             var existingUser = await _userRepo.GetUserByEmailAsync(email);
             if (existingUser == null)
             {
-                return null;
+                throw new NotFoundException("There is no user with the provided email.");
             }
 
             // Hash the new password

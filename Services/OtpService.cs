@@ -4,6 +4,7 @@ using TaskFlowBackend.DTOs.Otp;
 using TaskFlowBackend.Enums;
 using TaskFlowBackend.Helpers;
 using TaskFlowBackend.Helpers.CustomException;
+using TaskFlowBackend.Repository.Interfaces;
 using TaskFlowBackend.Services.Interfaces;
 
 namespace TaskFlowBackend.Services
@@ -14,15 +15,27 @@ namespace TaskFlowBackend.Services
 
         private readonly IRedisCacheService _redisCache;
         private readonly IEventPublisherService _eventPublisher;
+        private readonly IUserRepository _userRepo;
 
-        public OtpService(IRedisCacheService redisCache, IEventPublisherService eventPublisher)
+        public OtpService(IRedisCacheService redisCache, IEventPublisherService eventPublisher, IUserRepository userRepo)
         {
             _redisCache = redisCache;
             _eventPublisher = eventPublisher;
+            _userRepo = userRepo;
         }
 
-        public async Task<OtpGeneratedResponseDto> GenerateOtpAsync(GenerateOtpRequestDto dto)
+        public async Task<OtpGeneratedResponseDto> GenerateOtpAsync(GenerateOtpRequestDto dto, bool platform = false)
         {
+            // check user email exists or not if platfrom is true
+            if (platform)
+            {
+                var existingUser = await _userRepo.GetUserByEmailAsync(dto.Email);
+                if (existingUser == null)
+                {
+                    throw new NotFoundException("There is no user with the provided email.");
+                }
+            }
+
             string otp = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
             string key = BuildKey(dto.Email, dto.Event);
 

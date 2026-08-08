@@ -19,9 +19,9 @@ namespace TaskFlowBackend.Controllers
 
         [AllowAnonymous]
         [HttpPost("generate")]
-        public async Task<ApiResponse<OtpGeneratedResponseDto>> Generate([FromBody] GenerateOtpRequestDto dto)
+        public async Task<ApiResponse<OtpGeneratedResponseDto>> Generate([FromBody] GenerateOtpRequestDto dto, [FromQuery] bool platform = false)
         {
-            var result = await _otpService.GenerateOtpAsync(dto);
+            var result = await _otpService.GenerateOtpAsync(dto, platform);
             return ApiResponse<OtpGeneratedResponseDto>.Success(result, "OTP sent successfully.");
         }
 
