@@ -455,6 +455,12 @@ namespace TaskFlowBackend.Data.Fluent
                 entity.Property(u => u.DaysToArchieve)
                     .IsRequired();
 
+                entity.Property(u => u.NotificationOnMemberAddToWorkspace)
+                    .IsRequired();
+
+                entity.Property(u => u.NotificationOnMemberAddToTeam)
+                    .IsRequired();
+
                 entity.Property(u => u.CreatedAt)
                     .IsRequired()
                     .HasDefaultValueSql("NOW()");
