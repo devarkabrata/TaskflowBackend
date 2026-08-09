@@ -19,6 +19,10 @@ namespace TaskFlowBackend.DTOs.Users
         public int DaysToArchieve { get; set; }
         public bool NotificationOnMemberAddToWorkspace { get; set; }
         public bool NotificationOnMemberAddToTeam { get; set; }
+        public bool NotificationOnTaskAssignment { get; set; }
+        public bool IsTeamMemberNotificationEnabled { get; set; }
+        public bool IsWorkspaceMemberNotificationEnabled { get; set; }
+        public bool IsTaskCreationNotificationEnabled { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

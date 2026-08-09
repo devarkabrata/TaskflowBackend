@@ -107,6 +107,10 @@ namespace TaskFlowBackend.Controllers
                 DaysToArchieve = result.DaysToArchieve,
                 NotificationOnMemberAddToWorkspace = result.NotificationOnMemberAddToWorkspace,
                 NotificationOnMemberAddToTeam = result.NotificationOnMemberAddToTeam,
+                NotificationOnTaskAssignment = result.NotificationOnTaskAssignment,
+                IsTeamMemberNotificationEnabled = result.IsTeamMemberNotificationEnabled,
+                IsWorkspaceMemberNotificationEnabled = result.IsWorkspaceMemberNotificationEnabled,
+                IsTaskCreationNotificationEnabled = result.IsTaskCreationNotificationEnabled,
                 CreatedAt = result.CreatedAt,
                 UpdatedAt = result.UpdatedAt
             };
@@ -126,6 +130,10 @@ namespace TaskFlowBackend.Controllers
                 DaysToArchieve = result.DaysToArchieve,
                 NotificationOnMemberAddToWorkspace = result.NotificationOnMemberAddToWorkspace,
                 NotificationOnMemberAddToTeam = result.NotificationOnMemberAddToTeam,
+                NotificationOnTaskAssignment = result.NotificationOnTaskAssignment,
+                IsTeamMemberNotificationEnabled = result.IsTeamMemberNotificationEnabled,
+                IsWorkspaceMemberNotificationEnabled = result.IsWorkspaceMemberNotificationEnabled,
+                IsTaskCreationNotificationEnabled = result.IsTaskCreationNotificationEnabled,
                 CreatedAt = result.CreatedAt,
                 UpdatedAt = result.UpdatedAt
             };
