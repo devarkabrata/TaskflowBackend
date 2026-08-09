@@ -297,20 +297,22 @@ namespace TaskFlowBackend.Services
 
             var added = await _memberRepo.BulkAddAsync(workspaceId, userIds);
 
-            var inviter = await _userRepo.GetUserByIdAsync(invitedByUserId);
-            foreach (var member in added)
-            {
-                var user = await _userRepo.GetUserByIdAsync(member.UserId);
-                if (user == null || !user.Settings.NotificationOnMemberAddToWorkspace || !workspace.Owner.Settings.NotificationOnMemberAddToWorkspace) continue;
-
-                await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
+            if(workspace.Owner.Settings.IsWorkspaceMemberNotificationEnabled){
+                var inviter = await _userRepo.GetUserByIdAsync(invitedByUserId);
+                foreach (var member in added)
                 {
-                    To = user.Email,
-                    From = RoutingKeys.FromEmail,
-                    WorkspaceName = workspace.Name,
-                    MemberName = user.Name,
-                    InvitedBy = inviter?.Name ?? string.Empty
-                });
+                    var user = await _userRepo.GetUserByIdAsync(member.UserId);
+                    if (user == null || !user.Settings.NotificationOnMemberAddToWorkspace) continue;
+
+                    await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
+                    {
+                        To = user.Email,
+                        From = RoutingKeys.FromEmail,
+                        WorkspaceName = workspace.Name,
+                        MemberName = user.Name,
+                        InvitedBy = inviter?.Name ?? string.Empty
+                    });
+                }
             }
 
             return added.Select(m => m.UserId).ToList();
