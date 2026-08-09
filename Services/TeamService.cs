@@ -202,7 +202,7 @@ namespace TaskFlowBackend.Services
 
             await _memberRepo.SyncAsync(toAdd, toRemove, toUpdate);
 
-            // await PublishMemberAddedEventsAsync(toAdd, workspace, userId);
+            await PublishMemberAddedEventsAsync(toAdd, workspace, userId);
 
             var refreshed = await _teamRepo.GetByIdAsync(teamId);
             return MapToDto(refreshed!);
@@ -217,7 +217,7 @@ namespace TaskFlowBackend.Services
             foreach (var member in added)
             {
                 var user = await _userRepo.GetUserByIdAsync(member.UserId);
-                if (user == null) continue;
+                if (user == null || !user.Settings.NotificationOnMemberAddToTeam) continue;
 
                 await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
                 {

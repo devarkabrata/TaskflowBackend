@@ -17,6 +17,8 @@ namespace TaskFlowBackend.DTOs.Users
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
         public int DaysToArchieve { get; set; }
+        public bool NotificationOnMemberAddToWorkspace { get; set; }
+        public bool NotificationOnMemberAddToTeam { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

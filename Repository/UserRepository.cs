@@ -54,6 +54,7 @@ namespace TaskFlowBackend.Repository
         public async Task<User?> GetUserByIdAsync(Guid id)
         {
             return await _context.Users
+                .Include(u => u.Settings)
                 .Include(u => u.WorkspaceMemberships).ThenInclude(wm => wm.Workspace)
                 .Include(u => u.TeamMemberships).ThenInclude(tm => tm.Team)
                 .FirstOrDefaultAsync(u => u.Id == id);

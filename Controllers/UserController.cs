@@ -105,6 +105,8 @@ namespace TaskFlowBackend.Controllers
                 Id = result!.Id,
                 UserId = result.UserId,
                 DaysToArchieve = result.DaysToArchieve,
+                NotificationOnMemberAddToWorkspace = result.NotificationOnMemberAddToWorkspace,
+                NotificationOnMemberAddToTeam = result.NotificationOnMemberAddToTeam,
                 CreatedAt = result.CreatedAt,
                 UpdatedAt = result.UpdatedAt
             };
@@ -122,6 +124,8 @@ namespace TaskFlowBackend.Controllers
                 Id = result!.Id,
                 UserId = result.UserId,
                 DaysToArchieve = result.DaysToArchieve,
+                NotificationOnMemberAddToWorkspace = result.NotificationOnMemberAddToWorkspace,
+                NotificationOnMemberAddToTeam = result.NotificationOnMemberAddToTeam,
                 CreatedAt = result.CreatedAt,
                 UpdatedAt = result.UpdatedAt
             };

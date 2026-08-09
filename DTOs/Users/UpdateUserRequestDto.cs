@@ -21,6 +21,10 @@ namespace TaskFlowBackend.DTOs.Users
     {
         [Required(ErrorMessage = "Need to specify Days to Archieve")]
         public int DaysToArchieve { get; set; }
+        [Required(ErrorMessage = "Need to specify NotificationOnMemberAddToWorkspace")]
+        public bool NotificationOnMemberAddToWorkspace { get; set; }
+        [Required(ErrorMessage = "Need to specify NotificationOnMemberAddToTeam")]
+        public bool NotificationOnMemberAddToTeam { get; set; }
     }
 
     public class UpdateUserPasswordRequestDto

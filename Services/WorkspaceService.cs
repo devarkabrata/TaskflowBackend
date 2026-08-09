@@ -169,6 +169,10 @@ namespace TaskFlowBackend.Services
             if (user == null)
                 throw new NotFoundException("User not found.");
 
+            var workspace = await _workspaceRepo.GetByIdAsync(workspaceId);
+            if (workspace == null)
+                throw new NotFoundException("Workspace not found.");
+
             var invitation = await _invitationRepo.GetPendingByEmailAsync(workspaceId, user.Email);
             if (invitation == null)
                 throw new NotFoundException("Invitation not found.");
@@ -187,6 +191,18 @@ namespace TaskFlowBackend.Services
             }
 
             await _invitationRepo.DeleteAsync(workspaceId, invitation.Id);
+
+            if (user != null && user.Settings.NotificationOnMemberAddToWorkspace)
+            {
+                await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
+                {
+                    To = user.Email,
+                    From = RoutingKeys.FromEmail,
+                    WorkspaceName = workspace.Name,
+                    MemberName = user.Name,
+                    InvitedBy = workspace.Name ?? string.Empty
+                });
+            }
         }
 
         public async Task DeclineInvitationAsync(Guid workspaceId, Guid userId)
@@ -285,7 +301,7 @@ namespace TaskFlowBackend.Services
             foreach (var member in added)
             {
                 var user = await _userRepo.GetUserByIdAsync(member.UserId);
-                if (user == null) continue;
+                if (user == null || !user.Settings.NotificationOnMemberAddToWorkspace) continue;
 
                 await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
                 {

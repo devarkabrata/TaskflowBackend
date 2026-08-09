@@ -66,6 +66,8 @@ namespace TaskFlowBackend.Services
                 Id = Guid.NewGuid(),
                 UserId = id,
                 DaysToArchieve = 2,
+                NotificationOnMemberAddToWorkspace = false,
+                NotificationOnMemberAddToTeam = false,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -126,6 +128,8 @@ namespace TaskFlowBackend.Services
             }
 
             existingUserSettings.DaysToArchieve = settings.DaysToArchieve;
+            existingUserSettings.NotificationOnMemberAddToWorkspace = settings.NotificationOnMemberAddToWorkspace;
+            existingUserSettings.NotificationOnMemberAddToTeam = settings.NotificationOnMemberAddToTeam;
             existingUserSettings.UpdatedAt = DateTime.UtcNow;
 
             var result = await _userRepo.UpdateUserSettingsAsync(existingUserSettings);
