@@ -19,6 +19,7 @@ namespace TaskFlowBackend.Services
         private readonly IUserRepository _userRepo;
         private readonly ITeamRepository _teamRepo;
         private readonly IEventPublisherService _eventPublisher;
+        private readonly IConfiguration _configuration;
 
         public WorkspaceService(
             IWorkspaceRepository workspaceRepo,
@@ -26,7 +27,8 @@ namespace TaskFlowBackend.Services
             IWorkspaceInvitationRepository invitationRepo,
             IUserRepository userRepo,
             ITeamRepository teamRepo,
-            IEventPublisherService eventPublisher)
+            IEventPublisherService eventPublisher,
+            IConfiguration configuration)
         {
             _workspaceRepo = workspaceRepo;
             _memberRepo = memberRepo;
@@ -34,6 +36,7 @@ namespace TaskFlowBackend.Services
             _userRepo = userRepo;
             _teamRepo = teamRepo;
             _eventPublisher = eventPublisher;
+            _configuration = configuration;
         }
 
         public async Task<Workspace> CreateDefaultWorkspaceAsync(Guid userId, string workspace_name)
@@ -126,11 +129,13 @@ namespace TaskFlowBackend.Services
             {
                 var existingMember = await _memberRepo.GetByUserIdAsync(workspace.Id, existingUser.Id);
                 if (existingMember != null)
-                    throw new ValidationException("Validation failed.", new List<ApiError>
+                    throw new ValidationException("This user is already a member of the workspace.", new List<ApiError>
                     {
                         new ApiError { Field = "email", Code = "ALREADY_MEMBER", Message = "This user is already a member of the workspace." }
                     });
             }
+
+            var inviter = await _userRepo.GetUserByIdAsync(requestingUserId);
 
             var existing = await _invitationRepo.GetPendingByEmailAsync(workspace.Id, email);
             if (existing != null)
@@ -138,6 +143,7 @@ namespace TaskFlowBackend.Services
                 existing.ExpiresAt = DateTime.UtcNow.AddDays(7);
                 existing.UpdatedAt = DateTime.UtcNow;
                 var updated = await _invitationRepo.UpdateAsync(existing);
+                await PublishInviteEmailAsync(workspace, inviter, existingUser, email);
                 return (MapInvitationToDto(updated), false);
             }
 
@@ -153,7 +159,84 @@ namespace TaskFlowBackend.Services
                 UpdatedAt = DateTime.UtcNow
             };
             var created = await _invitationRepo.CreateAsync(invitation);
+            await PublishInviteEmailAsync(workspace, inviter, existingUser, email);
             return (MapInvitationToDto(created), true);
+        }
+
+        public async Task AcceptInvitationAsync(Guid workspaceId, Guid userId)
+        {
+            var user = await _userRepo.GetUserByIdAsync(userId);
+            if (user == null)
+                throw new NotFoundException("User not found.");
+
+            var invitation = await _invitationRepo.GetPendingByEmailAsync(workspaceId, user.Email);
+            if (invitation == null)
+                throw new NotFoundException("Invitation not found.");
+
+            var existingMember = await _memberRepo.GetByUserIdAsync(workspaceId, userId);
+            if (existingMember == null)
+            {
+                await _memberRepo.AddAsync(new WorkspaceMember
+                {
+                    Id = Guid.NewGuid(),
+                    WorkspaceId = workspaceId,
+                    UserId = userId,
+                    Status = WorkspaceMemberStatus.Active,
+                    JoinedAt = DateTime.UtcNow
+                });
+            }
+
+            await _invitationRepo.DeleteAsync(workspaceId, invitation.Id);
+        }
+
+        public async Task DeclineInvitationAsync(Guid workspaceId, Guid userId)
+        {
+            var user = await _userRepo.GetUserByIdAsync(userId);
+            if (user == null)
+                throw new NotFoundException("User not found.");
+
+            var invitation = await _invitationRepo.GetPendingByEmailAsync(workspaceId, user.Email);
+            if (invitation == null)
+                throw new NotFoundException("Invitation not found.");
+
+            await _invitationRepo.DeleteAsync(workspaceId, invitation.Id);
+        }
+
+        public async Task<List<PendingInvitationDto>> GetPendingInvitationsForUserAsync(Guid userId)
+        {
+            var user = await _userRepo.GetUserByIdAsync(userId);
+            if (user == null)
+                throw new NotFoundException("User not found.");
+
+            var invitations = await _invitationRepo.GetPendingByEmailAcrossWorkspacesAsync(user.Email);
+            return invitations.Select(i => new PendingInvitationDto
+            {
+                Id = i.Id,
+                WorkspaceId = i.WorkspaceId,
+                WorkspaceName = i.Workspace.Name,
+                InvitedBy = i.Sender?.Name ?? string.Empty,
+                Email = i.Email,
+                ExpiresAt = i.ExpiresAt,
+                CreatedAt = i.CreatedAt
+            }).ToList();
+        }
+
+        private async Task PublishInviteEmailAsync(Workspace workspace, User? inviter, User? invitedUser, string email)
+        {
+            var frontendUrl = (_configuration["FrontendUrl"] ?? string.Empty).TrimEnd('/');
+            string inviteLink = invitedUser != null
+                ? $"{frontendUrl}/invite?wid={workspace.Id}&uid={invitedUser.Id}&activeMember=true&event=workspace_invite"
+                : $"{frontendUrl}/invite?wid={workspace.Id}&activeMember=false&event=workspace_invite";
+
+            await _eventPublisher.PublishAsync(RoutingKeys.WorkspaceInvite, new WorkspaceInviteEvent
+            {
+                To = email,
+                From = RoutingKeys.FromEmail,
+                WorkspaceName = workspace.Name,
+                InvitedBy = inviter?.Name ?? string.Empty,
+                UserName = invitedUser?.Name ?? email,
+                InviteLink = inviteLink
+            });
         }
 
         public async Task<PeopleListItemDto> UpdateMemberAsync(Guid requestingUserId, Guid targetUserId, UpdateMemberRequestDto dto)
@@ -227,7 +310,7 @@ namespace TaskFlowBackend.Services
             {
                 var adminTeams = await _teamRepo.GetByWorkspaceIdForAdminAsync(workspace.Id, targetId);
                 if (adminTeams.Any())
-                    throw new ValidationException("Validation failed.", new List<ApiError>
+                    throw new ValidationException("This user is already a member of the workspace.", new List<ApiError>
                     {
                         new ApiError
                         {

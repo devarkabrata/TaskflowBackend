@@ -39,6 +39,13 @@ namespace TaskFlowBackend.Repository
                 i.Email == email &&
                 i.Status == InvitationStatus.Pending);
 
+        public async Task<List<WorkspaceInvitation>> GetPendingByEmailAcrossWorkspacesAsync(string email)
+            => await _context.WorkspaceInvitations
+                .Include(i => i.Workspace)
+                .Include(i => i.Sender)
+                .Where(i => i.Email == email && i.Status == InvitationStatus.Pending)
+                .ToListAsync();
+
         public async Task<WorkspaceInvitation?> GetByIdAsync(Guid workspaceId, Guid id)
             => await _context.WorkspaceInvitations.FirstOrDefaultAsync(i =>
                 i.WorkspaceId == workspaceId && i.Id == id);

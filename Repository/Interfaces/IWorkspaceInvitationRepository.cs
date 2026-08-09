@@ -7,6 +7,7 @@ namespace TaskFlowBackend.Repository.Interfaces
     {
         Task<(List<WorkspaceInvitation> Items, int Total)> GetAllPendingAsync(Guid workspaceId, string? search, PaginationParams? pagination = null);
         Task<WorkspaceInvitation?> GetPendingByEmailAsync(Guid workspaceId, string email);
+        Task<List<WorkspaceInvitation>> GetPendingByEmailAcrossWorkspacesAsync(string email);
         Task<WorkspaceInvitation?> GetByIdAsync(Guid workspaceId, Guid id);
         Task<WorkspaceInvitation> CreateAsync(WorkspaceInvitation invitation);
         Task<WorkspaceInvitation> UpdateAsync(WorkspaceInvitation invitation);

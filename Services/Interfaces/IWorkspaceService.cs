@@ -11,6 +11,9 @@ namespace TaskFlowBackend.Services.Interfaces
         Task<PagedResult<PeopleListItemDto>> GetPeopleAsync(Guid requestingUserId, string? search, string? status, Guid? teamId, int page, int limit);
         Task<PeopleStatsDto> GetStatsAsync(Guid requestingUserId);
         Task<(WorkspaceInvitationResponseDto dto, bool isNew)> InviteAsync(Guid requestingUserId, string email);
+        Task AcceptInvitationAsync(Guid workspaceId, Guid userId);
+        Task DeclineInvitationAsync(Guid workspaceId, Guid userId);
+        Task<List<PendingInvitationDto>> GetPendingInvitationsForUserAsync(Guid userId);
         Task<PeopleListItemDto> UpdateMemberAsync(Guid requestingUserId, Guid targetUserId, UpdateMemberRequestDto dto);
         Task RemoveMemberAsync(Guid requestingUserId, Guid targetUserId);
         Task<Workspace> GetWorkspaceOrThrowAsync(Guid userId);

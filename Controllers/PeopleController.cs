@@ -76,5 +76,28 @@ namespace TaskFlowBackend.Controllers
             var result = await _workspaceService.AddMembersToWorkspaceAsync(workspace.Id, userIds.UserIds, userId);
             return ApiResponse<List<Guid>>.Success(result, "Members enlisted successfully.");
         }
+
+        [AllowAnonymous]
+        [HttpPost("invitations/accept")]
+        public async Task<ApiResponse<object>> AcceptInvitation([FromBody] WorkspaceInvitationActionRequestDto dto)
+        {
+            await _workspaceService.AcceptInvitationAsync(dto.WorkspaceId, dto.UserId);
+            return ApiResponse<object>.Success(null!, "Invitation accepted successfully.");
+        }
+
+        [AllowAnonymous]
+        [HttpPost("invitations/decline")]
+        public async Task<ApiResponse<object>> DeclineInvitation([FromBody] WorkspaceInvitationActionRequestDto dto)
+        {
+            await _workspaceService.DeclineInvitationAsync(dto.WorkspaceId, dto.UserId);
+            return ApiResponse<object>.Success(null!, "Invitation declined successfully.");
+        }
+
+        [HttpGet("invitations")]
+        public async Task<ApiResponse<List<PendingInvitationDto>>> GetPendingInvitations([FromQuery] Guid userId)
+        {
+            var result = await _workspaceService.GetPendingInvitationsForUserAsync(userId);
+            return ApiResponse<List<PendingInvitationDto>>.Success(result, "Pending invitations fetched successfully.");
+        }
     }
 }
