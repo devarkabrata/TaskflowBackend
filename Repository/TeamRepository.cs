@@ -19,6 +19,8 @@ namespace TaskFlowBackend.Repository
                 .Include(t => t.Members)
                     .ThenInclude(m => m.User)
                 .Include(t => t.Invitations)
+                .Include(t => t.Admin)
+                    .ThenInclude(a => a.Settings)
                 .FirstOrDefaultAsync(t => t.Id == teamId);
 
         public async Task<List<Team>> GetByWorkspaceIdForUserAsync(Guid workspaceId, Guid userId)

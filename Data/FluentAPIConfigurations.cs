@@ -461,6 +461,18 @@ namespace TaskFlowBackend.Data.Fluent
                 entity.Property(u => u.NotificationOnMemberAddToTeam)
                     .IsRequired();
 
+                entity.Property(u => u.NotificationOnTaskAssignment)
+                    .IsRequired();
+
+                entity.Property(u => u.IsTeamMemberNotificationEnabled)
+                    .IsRequired();
+
+                entity.Property(u => u.IsWorkspaceMemberNotificationEnabled)
+                    .IsRequired();
+
+                entity.Property(u => u.IsTaskCreationNotificationEnabled)
+                    .IsRequired();
+
                 entity.Property(u => u.CreatedAt)
                     .IsRequired()
                     .HasDefaultValueSql("NOW()");

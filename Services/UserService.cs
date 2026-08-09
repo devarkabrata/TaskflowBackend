@@ -68,6 +68,10 @@ namespace TaskFlowBackend.Services
                 DaysToArchieve = 2,
                 NotificationOnMemberAddToWorkspace = false,
                 NotificationOnMemberAddToTeam = false,
+                NotificationOnTaskAssignment = false,
+                IsTeamMemberNotificationEnabled = false,
+                IsWorkspaceMemberNotificationEnabled = false,
+                IsTaskCreationNotificationEnabled = false,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -130,6 +134,10 @@ namespace TaskFlowBackend.Services
             existingUserSettings.DaysToArchieve = settings.DaysToArchieve;
             existingUserSettings.NotificationOnMemberAddToWorkspace = settings.NotificationOnMemberAddToWorkspace;
             existingUserSettings.NotificationOnMemberAddToTeam = settings.NotificationOnMemberAddToTeam;
+            existingUserSettings.IsTaskCreationNotificationEnabled = settings.IsTaskCreationNotificationEnabled;
+            existingUserSettings.IsTeamMemberNotificationEnabled = settings.IsTeamMemberNotificationEnabled;
+            existingUserSettings.IsWorkspaceMemberNotificationEnabled = settings.IsWorkspaceMemberNotificationEnabled;
+            existingUserSettings.NotificationOnTaskAssignment = settings.NotificationOnTaskAssignment;
             existingUserSettings.UpdatedAt = DateTime.UtcNow;
 
             var result = await _userRepo.UpdateUserSettingsAsync(existingUserSettings);

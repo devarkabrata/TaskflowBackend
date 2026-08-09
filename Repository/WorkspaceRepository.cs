@@ -15,10 +15,10 @@ namespace TaskFlowBackend.Repository
         }
 
         public async Task<Workspace?> GetByIdAsync(Guid id)
-            => await _context.Workspaces.FirstOrDefaultAsync(w => w.Id == id);
+            => await _context.Workspaces.Include(w => w.Owner).ThenInclude(o => o.Settings).FirstOrDefaultAsync(w => w.Id == id);
 
         public async Task<Workspace?> GetByOwnerIdAsync(Guid ownerId)
-            => await _context.Workspaces.FirstOrDefaultAsync(w => w.OwnerId == ownerId);
+            => await _context.Workspaces.Include(w => w.Owner).ThenInclude(o => o.Settings).FirstOrDefaultAsync(w => w.OwnerId == ownerId);
 
         public async Task<int> GetCountByOwnerIdAsync(Guid ownerId)
             => await _context.Workspaces.CountAsync(w => w.OwnerId == ownerId);

@@ -202,7 +202,10 @@ namespace TaskFlowBackend.Services
 
             await _memberRepo.SyncAsync(toAdd, toRemove, toUpdate);
 
-            await PublishMemberAddedEventsAsync(toAdd, workspace, userId);
+            if (team.Admin.Settings.IsTeamMemberNotificationEnabled)
+            {   
+                await PublishMemberAddedEventsAsync(toAdd, workspace, userId);
+            }
 
             var refreshed = await _teamRepo.GetByIdAsync(teamId);
             return MapToDto(refreshed!);

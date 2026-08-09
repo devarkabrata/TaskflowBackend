@@ -25,6 +25,14 @@ namespace TaskFlowBackend.DTOs.Users
         public bool NotificationOnMemberAddToWorkspace { get; set; }
         [Required(ErrorMessage = "Need to specify NotificationOnMemberAddToTeam")]
         public bool NotificationOnMemberAddToTeam { get; set; }
+        [Required(ErrorMessage = "Need to specify NotificationOnTaskAssignment")]
+        public bool NotificationOnTaskAssignment { get; set; }
+        [Required(ErrorMessage = "Need to specify IsTaskCreationNotificationEnabled")]
+        public bool IsTaskCreationNotificationEnabled { get; set; }
+        [Required(ErrorMessage = "Need to specify IsTeamMemberNotificationEnabled")]
+        public bool IsTeamMemberNotificationEnabled { get; set; }
+        [Required(ErrorMessage = "Need to specify IsWorkspaceMemberNotificationEnabled")]
+        public bool IsWorkspaceMemberNotificationEnabled { get; set; }
     }
 
     public class UpdateUserPasswordRequestDto

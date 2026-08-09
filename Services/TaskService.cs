@@ -40,6 +40,10 @@ namespace TaskFlowBackend.Services
 
         public async Task<TaskResponseDto> CreateTaskAsync(CreateTaskRequestDto dto, Guid userId)
         {
+            // Get user info
+            var user = await _userRepo.GetUserByIdAsync(userId);
+            if(user == null) throw new NotFoundException("User not found.");
+
             var team = await GetTeamOrThrowAsync(dto.TeamId);
             EnsureMembership(team, userId);
 
@@ -69,7 +73,10 @@ namespace TaskFlowBackend.Services
             var created = await _taskRepo.CreateAsync(task);
             var reloaded = await _taskRepo.GetByIdAsync(created.Id);
 
-            // await PublishTaskCreatedEventsAsync(task, team, userId);
+            if (user.Settings.IsTaskCreationNotificationEnabled)
+            {
+                await PublishTaskCreatedEventsAsync(task, team, userId);
+            }
 
             return await MapToDtoAsync(reloaded!);
         }

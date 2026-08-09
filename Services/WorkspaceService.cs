@@ -192,7 +192,7 @@ namespace TaskFlowBackend.Services
 
             await _invitationRepo.DeleteAsync(workspaceId, invitation.Id);
 
-            if (user != null && user.Settings.NotificationOnMemberAddToWorkspace)
+            if (user != null && workspace != null && workspace.Owner.Settings.NotificationOnMemberAddToWorkspace && user.Settings.NotificationOnMemberAddToWorkspace)
             {
                 await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
                 {
@@ -301,7 +301,7 @@ namespace TaskFlowBackend.Services
             foreach (var member in added)
             {
                 var user = await _userRepo.GetUserByIdAsync(member.UserId);
-                if (user == null || !user.Settings.NotificationOnMemberAddToWorkspace) continue;
+                if (user == null || !user.Settings.NotificationOnMemberAddToWorkspace || !workspace.Owner.Settings.NotificationOnMemberAddToWorkspace) continue;
 
                 await _eventPublisher.PublishAsync(RoutingKeys.MemberAdded, new MemberAddedEvent
                 {
