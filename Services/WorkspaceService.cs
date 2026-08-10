@@ -258,7 +258,7 @@ namespace TaskFlowBackend.Services
             var frontendUrl = (_configuration["FrontendUrl"] ?? string.Empty).TrimEnd('/');
             string inviteLink = invitedUser != null
                 ? $"{frontendUrl}/invite?wid={workspace.Id}&uid={invitedUser.Id}&activeMember=true&event=workspace_invite"
-                : $"{frontendUrl}/invite?wid={workspace.Id}&activeMember=false&event=workspace_invite";
+                : $"{frontendUrl}/signup?wid={workspace.Id}&activeMember=false&event=workspace_invite";
 
             await _eventPublisher.PublishAsync(RoutingKeys.WorkspaceInvite, new WorkspaceInviteEvent
             {
