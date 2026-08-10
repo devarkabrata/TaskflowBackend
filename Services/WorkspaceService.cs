@@ -68,7 +68,20 @@ namespace TaskFlowBackend.Services
         public async Task<PagedResult<PeopleListItemDto>> GetPeopleAsync(
             Guid requestingUserId, string? search, string? status, Guid? teamId, int page, int limit)
         {
-            var workspace = await GetWorkspaceOrThrowAsync(requestingUserId);
+            Guid workspaceId;
+            if (teamId.HasValue)
+            {
+                var team = await _teamRepo.GetByIdAsync(teamId.Value) ?? throw new NotFoundException("Team not found.");
+                if (!team.Members.Any(m => m.UserId == requestingUserId))
+                    throw new ForbiddenException("You are not a member of this team.");
+                workspaceId = team.WorkspaceId;
+            }
+            else
+            {
+                var workspace = await GetWorkspaceOrThrowAsync(requestingUserId);
+                workspaceId = workspace.Id;
+            }
+
             var pagination = new PaginationParams { Page = page, Limit = limit };
 
             bool includeActive = string.IsNullOrEmpty(status) || status.Equals("active", StringComparison.OrdinalIgnoreCase);
@@ -77,28 +90,31 @@ namespace TaskFlowBackend.Services
             // Active only — DB-level pagination
             if (includeActive && !includePending)
             {
-                var (members, total) = await _memberRepo.GetMembersAsync(workspace.Id, search, teamId, pagination);
-                var dtos = await MapMembersToDtosAsync(workspace.Id, members);
+                var (members, total) = await _memberRepo.GetMembersAsync(workspaceId, search, teamId, pagination);
+                var dtos = await MapMembersToDtosAsync(workspaceId, members);
                 return new PagedResult<PeopleListItemDto> { Data = dtos, Total = total, Page = page, Limit = limit };
             }
 
-            // Pending only — DB-level pagination
-            if (includePending && !includeActive && teamId == null)
+            // Pending only — DB-level pagination. Pending invitations aren't associated with a team.
+            if (includePending && !includeActive)
             {
-                var (invitations, total) = await _invitationRepo.GetAllPendingAsync(workspace.Id, search, pagination);
+                if (teamId != null)
+                    return new PagedResult<PeopleListItemDto> { Data = new List<PeopleListItemDto>(), Total = 0, Page = page, Limit = limit };
+
+                var (invitations, total) = await _invitationRepo.GetAllPendingAsync(workspaceId, search, pagination);
                 var dtos = invitations.Select(MapInvitationToListItemDto).ToList();
                 return new PagedResult<PeopleListItemDto> { Data = dtos, Total = total, Page = page, Limit = limit };
             }
 
             // Combined — fetch all from both sources, merge, in-memory paginate
-            var (allMembers, memberTotal) = await _memberRepo.GetMembersAsync(workspace.Id, search, teamId);
-            var memberDtos = await MapMembersToDtosAsync(workspace.Id, allMembers);
+            var (allMembers, memberTotal) = await _memberRepo.GetMembersAsync(workspaceId, search, teamId);
+            var memberDtos = await MapMembersToDtosAsync(workspaceId, allMembers);
             var combined = new List<PeopleListItemDto>(memberDtos);
             var combinedTotal = memberTotal;
 
             if (teamId == null)
             {
-                var (allInvitations, invTotal) = await _invitationRepo.GetAllPendingAsync(workspace.Id, search);
+                var (allInvitations, invTotal) = await _invitationRepo.GetAllPendingAsync(workspaceId, search);
                 combined.AddRange(allInvitations.Select(MapInvitationToListItemDto));
                 combinedTotal += invTotal;
             }
