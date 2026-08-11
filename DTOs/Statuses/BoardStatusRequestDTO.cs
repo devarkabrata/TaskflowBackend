@@ -9,7 +9,7 @@ namespace TaskFlowBackend.DTOs
         public string? Description { get; set; }
 
         [Required(ErrorMessage = "Position is required.")]
-        public int Position { get; set; }
+        public int? Position { get; set; }
         [Required(ErrorMessage = "TeamId is required.")]
         public Guid TeamId { get; set; }
         [Required(ErrorMessage = "Archievable status is required.")]

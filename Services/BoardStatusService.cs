@@ -31,18 +31,18 @@ namespace TaskFlowBackend.Services
 
             var positions = (await _boardStatusRepo.GetByTeamIdAsync(request.TeamId)).Select(s => s.Position).ToList();
 
-            if(positions.Contains(request.Position))
-                throw new ForbiddenException("Position already exists for this team.");
+            // if(positions.Contains(request.Position))
+            //     throw new ForbiddenException("Position already exists for this team.");
 
-            if(request.Position < 0 || request.Position > positions.Count)
-                throw new ForbiddenException("Position is out of range for this team.");
+            // if(request.Position < 0 || request.Position > positions.Count)
+            //     throw new ForbiddenException("Position is out of range for this team.");
 
             var newStatus = new BoardStatus
             {
                 Id = Guid.NewGuid(),
                 Name = request.Name,
                 Description = request.Description,
-                Position = request.Position,
+                Position = positions.Count, // Assign the next available position
                 TeamId = request.TeamId,
                 IsArchievable = request.IsArchievable ?? false,
                 IsDeletable = request.IsDeletable ?? true,
