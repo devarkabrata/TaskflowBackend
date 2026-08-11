@@ -12,6 +12,7 @@ namespace TaskFlowBackend.Models
         public Priority Priority { get; set; }
         public LabelType? Label { get; set; }
         public Guid StatusId { get; set; }
+        public string? Status { get; set; }
         public Guid TeamId { get; set; }
         public List<TaskAssigneeDto> AssigneeDetails { get; set; } = new List<TaskAssigneeDto>();
         public DateTime? ExpectedCompletion { get; set; }

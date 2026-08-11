@@ -93,7 +93,7 @@ namespace TaskFlowBackend.Controllers
         public async Task<ApiResponse<TaskResponseDto>> ChangeStatus(Guid id, [FromBody] StatusChangeRequestDto dto)
         {
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-            var result = await _taskService.ChangeStatusAsync(id, dto.StatusId, userId);
+            var result = await _taskService.ChangeStatusAsync(id, dto.StatusId, userId, dto.Progress);
             return ApiResponse<TaskResponseDto>.Success(result, "Task status updated successfully.");
         }
     }

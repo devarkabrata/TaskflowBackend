@@ -13,7 +13,7 @@ namespace TaskFlowBackend.Services.Interfaces
         Task DeleteTaskAsync(Guid taskId, Guid userId);
         Task<PagedResult<TaskResponseDto>> ListTasksAsync(Guid userId, string? search, Guid? teamId, Guid? assigneeId, int page, int limit);
         Task<BoardResponseDto> GetBoardAsync(Guid teamId, Guid userId);
-        Task<TaskResponseDto> ChangeStatusAsync(Guid taskId, Guid statusId, Guid userId);
+        Task<TaskResponseDto> ChangeStatusAsync(Guid taskId, Guid statusId, Guid userId, int? progress = null);
         Task<List<TaskItem>> MarkAndCopyEligibleTasksAsync(int batchSize, int olderThanDays, CancellationToken ct = default);
         Task<int> DeleteConfirmedArchivedTasksAsync(CancellationToken ct);
         Task<TaskCountDTO> GetTaskCountByUser(Guid userId);

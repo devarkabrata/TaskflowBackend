@@ -192,7 +192,7 @@ namespace TaskFlowBackend.Services
             return new BoardResponseDto { TeamId = teamId, Columns = columns };
         }
 
-        public async Task<TaskResponseDto> ChangeStatusAsync(Guid taskId, Guid statusId, Guid userId)
+        public async Task<TaskResponseDto> ChangeStatusAsync(Guid taskId, Guid statusId, Guid userId, int? progress = null)
         {
             var task = await _taskRepo.GetByIdAsync(taskId) ?? throw new NotFoundException("Task not found.");
             var team = await GetTeamOrThrowAsync(task.TeamId);
@@ -201,6 +201,7 @@ namespace TaskFlowBackend.Services
             await ValidateStatusBelongsToTeamAsync(statusId, task.TeamId);
 
             task.StatusId = statusId;
+            task.Progress = progress ?? task.Progress;
             task.UpdatedAt = DateTime.UtcNow;
 
             var updated = await _taskRepo.UpdateAsync(task);
@@ -235,6 +236,7 @@ namespace TaskFlowBackend.Services
                 Priority = task.Priority,
                 Label = task.Label,
                 StatusId = task.StatusId,
+                Status = task.Status?.Name,
                 TeamId = task.TeamId,
                 AssigneeDetails = users.Select(u => new TaskAssigneeDto
                 {

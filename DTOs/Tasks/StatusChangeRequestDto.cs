@@ -6,5 +6,6 @@ namespace TaskFlowBackend.DTOs.Tasks
     {
         [Required(ErrorMessage = "StatusId is required.")]
         public Guid StatusId { get; set; }
+        public int? Progress { get; set; }
     }
 }
