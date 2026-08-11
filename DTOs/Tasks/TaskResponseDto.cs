@@ -9,6 +9,7 @@ namespace TaskFlowBackend.DTOs.Tasks
         public string Priority { get; set; } = string.Empty;
         public string? Label { get; set; }
         public Guid StatusId { get; set; }
+        public string? Status { get; set; }
         public Guid TeamId { get; set; }
         public List<AssigneeSummaryDto> Assignees { get; set; } = new List<AssigneeSummaryDto>();
         public DateTime? ExpectedCompletion { get; set; }

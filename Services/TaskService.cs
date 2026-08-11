@@ -345,6 +345,7 @@ namespace TaskFlowBackend.Services
             Priority = task.Priority.ToString(),
             Label = task.Label?.ToString(),
             StatusId = task.StatusId,
+            Status = task.Status?.Name,
             TeamId = task.TeamId,
             Assignees = task.AssigneeIds
                 .Where(id => userLookup.ContainsKey(id))
