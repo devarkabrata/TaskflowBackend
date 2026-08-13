@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using TaskFlowBackend.DTOs.Export;
+using TaskFlowBackend.Enums;
 using TaskFlowBackend.Services.Interfaces;
 
 namespace TaskFlowBackend.Controllers
@@ -19,27 +20,36 @@ namespace TaskFlowBackend.Controllers
             _taskExportService = taskExportService;
         }
 
-        [HttpPost("csv")]
-        public async Task<IActionResult> ExportCsv([FromBody] TaskCsvExportRequestDto dto)
+        [HttpPost]
+        public async Task<IActionResult> Export([FromBody] TaskExportRequestDto dto)
         {
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-            var csvBytes = await _taskExportService.ExportTeamTasksToCsvAsync(dto, userId);
-            var fileName = BuildSafeFileName(dto.FileName);
+            var fileBytes = await _taskExportService.ExportTeamTasksAsync(dto, userId);
 
-            return File(csvBytes, "text/csv", fileName);
+            var (contentType, extension) = dto.Format == TaskExportFormat.Xlsx
+                ? ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ".xlsx")
+                : ("text/csv", ".csv");
+
+            var fileName = BuildSafeFileName(dto.FileName, extension);
+
+            return File(fileBytes, contentType, fileName);
         }
 
-        private static string BuildSafeFileName(string fileName)
+        private static string BuildSafeFileName(string fileName, string extension)
         {
             var invalidChars = Path.GetInvalidFileNameChars();
             var cleaned = new string(fileName.Where(c => !invalidChars.Contains(c)).ToArray()).Trim();
 
+            foreach (var knownExtension in new[] { ".csv", ".xlsx" })
+            {
+                if (cleaned.EndsWith(knownExtension, StringComparison.OrdinalIgnoreCase))
+                    cleaned = cleaned[..^knownExtension.Length];
+            }
+
             if (string.IsNullOrWhiteSpace(cleaned))
                 cleaned = "tasks-export";
 
-            return cleaned.EndsWith(".csv", StringComparison.OrdinalIgnoreCase)
-                ? cleaned
-                : $"{cleaned}.csv";
+            return $"{cleaned}{extension}";
         }
     }
 }

@@ -1,6 +1,6 @@
 namespace TaskFlowBackend.DTOs.Export
 {
-    public class TaskCsvRowDto
+    public class TaskExportRowDto
     {
         public int TaskNumber { get; set; }
         public string Title { get; set; } = string.Empty;

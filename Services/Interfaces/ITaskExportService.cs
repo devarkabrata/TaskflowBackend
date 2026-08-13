@@ -4,6 +4,6 @@ namespace TaskFlowBackend.Services.Interfaces
 {
     public interface ITaskExportService
     {
-        Task<byte[]> ExportTeamTasksToCsvAsync(TaskCsvExportRequestDto request, Guid userId);
+        Task<byte[]> ExportTeamTasksAsync(TaskExportRequestDto request, Guid userId);
     }
 }

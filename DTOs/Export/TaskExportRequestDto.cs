@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using TaskFlowBackend.Enums;
 
 namespace TaskFlowBackend.DTOs.Export
 {
-    public class TaskCsvExportRequestDto
+    public class TaskExportRequestDto
     {
         [Required]
         public Guid TeamId { get; set; }
@@ -11,5 +12,7 @@ namespace TaskFlowBackend.DTOs.Export
         public string FileName { get; set; } = string.Empty;
 
         public bool IsIncludeArchiveTask { get; set; } = false;
+
+        public TaskExportFormat Format { get; set; } = TaskExportFormat.Csv;
     }
 }

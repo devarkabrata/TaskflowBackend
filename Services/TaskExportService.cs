@@ -1,5 +1,7 @@
+using ClosedXML.Excel;
 using System.Text;
 using TaskFlowBackend.DTOs.Export;
+using TaskFlowBackend.Enums;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Models;
 using TaskFlowBackend.Repository.Archive.Interfaces;
@@ -10,7 +12,7 @@ namespace TaskFlowBackend.Services
 {
     public class TaskExportService : ITaskExportService
     {
-        private static readonly string[] CsvHeader =
+        private static readonly string[] ColumnHeaders =
         {
             "Task Number", "Title", "Status", "Creation Date", "Updation Date", "Assignees"
         };
@@ -29,7 +31,7 @@ namespace TaskFlowBackend.Services
             _teamRepository = teamRepository;
         }
 
-        public async Task<byte[]> ExportTeamTasksToCsvAsync(TaskCsvExportRequestDto request, Guid userId)
+        public async Task<byte[]> ExportTeamTasksAsync(TaskExportRequestDto request, Guid userId)
         {
             var team = await _teamRepository.GetByIdAsync(request.TeamId)
                 ?? throw new NotFoundException("Team not found.");
@@ -37,12 +39,12 @@ namespace TaskFlowBackend.Services
             if (!team.Members.Any(m => m.UserId == userId))
                 throw new ForbiddenException("You are not a member of this team.");
 
-            var rows = new List<TaskCsvRowDto>();
+            var rows = new List<TaskExportRowDto>();
 
             var activeTasks = await _taskRepository.GetByTeamIdAsync(request.TeamId);
             var userLookup = await BuildUserLookupAsync(activeTasks.SelectMany(t => t.AssigneeIds));
 
-            rows.AddRange(activeTasks.Select(t => new TaskCsvRowDto
+            rows.AddRange(activeTasks.Select(t => new TaskExportRowDto
             {
                 TaskNumber = t.TaskNumber,
                 Title = t.Title,
@@ -59,7 +61,7 @@ namespace TaskFlowBackend.Services
             {
                 var (archivedTasks, _) = await _migrateTasksRepository.GetArchivedTasksAsync(request.TeamId, null, null, null);
 
-                rows.AddRange(archivedTasks.Select(t => new TaskCsvRowDto
+                rows.AddRange(archivedTasks.Select(t => new TaskExportRowDto
                 {
                     TaskNumber = t.TaskNumber,
                     Title = t.Title,
@@ -72,7 +74,9 @@ namespace TaskFlowBackend.Services
 
             var orderedRows = rows.OrderBy(r => r.TaskNumber).ToList();
 
-            return BuildCsvBytes(orderedRows);
+            return request.Format == TaskExportFormat.Xlsx
+                ? BuildXlsxBytes(orderedRows)
+                : BuildCsvBytes(orderedRows);
         }
 
         private async Task<Dictionary<Guid, User>> BuildUserLookupAsync(IEnumerable<Guid> assigneeIds)
@@ -82,11 +86,11 @@ namespace TaskFlowBackend.Services
             return users.ToDictionary(u => u.Id);
         }
 
-        private static byte[] BuildCsvBytes(List<TaskCsvRowDto> rows)
+        private static byte[] BuildCsvBytes(List<TaskExportRowDto> rows)
         {
             var sb = new StringBuilder();
 
-            AppendCsvLine(sb, CsvHeader);
+            AppendCsvLine(sb, ColumnHeaders);
 
             foreach (var row in rows)
             {
@@ -116,6 +120,38 @@ namespace TaskFlowBackend.Services
                 return $"\"{field.Replace("\"", "\"\"")}\"";
 
             return field;
+        }
+
+        private static byte[] BuildXlsxBytes(List<TaskExportRowDto> rows)
+        {
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Tasks");
+
+            for (var col = 0; col < ColumnHeaders.Length; col++)
+                worksheet.Cell(1, col + 1).Value = ColumnHeaders[col];
+
+            worksheet.Row(1).Style.Font.Bold = true;
+
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var excelRow = i + 2;
+
+                worksheet.Cell(excelRow, 1).Value = row.TaskNumber;
+                worksheet.Cell(excelRow, 2).Value = row.Title;
+                worksheet.Cell(excelRow, 3).Value = row.Status;
+                worksheet.Cell(excelRow, 4).Value = row.CreatedAt;
+                worksheet.Cell(excelRow, 4).Style.DateFormat.Format = "yyyy-mm-dd hh:mm";
+                worksheet.Cell(excelRow, 5).Value = row.UpdatedAt;
+                worksheet.Cell(excelRow, 5).Style.DateFormat.Format = "yyyy-mm-dd hh:mm";
+                worksheet.Cell(excelRow, 6).Value = string.Join(", ", row.AssigneeNames);
+            }
+
+            worksheet.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
         }
     }
 }
