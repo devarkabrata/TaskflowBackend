@@ -8,7 +8,7 @@ namespace TaskFlowBackend.DTOs
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
 
-        [Required(ErrorMessage = "Position is required.")]
+        // [Required(ErrorMessage = "Position is required.")]
         public int? Position { get; set; }
         [Required(ErrorMessage = "TeamId is required.")]
         public Guid TeamId { get; set; }

@@ -133,6 +133,7 @@ builder.Services.AddScoped<IAvatarStorageService, AvatarStorageService>();
 builder.Services.AddScoped<ITaskMigrationService, TaskMigrationService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddScoped<ITaskExportService, TaskExportService>();
 
 
 builder.Services.AddControllers()
