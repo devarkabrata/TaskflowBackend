@@ -59,7 +59,7 @@ namespace TaskFlowBackend.Repository
             return await _context.SaveChangesAsync();
         }
 
-        public async Task<(List<TaskItem> Items, int Total)> SearchAsync(Guid userId, Guid? teamId, string? search, Guid? assigneeId, PaginationParams? pagination = null)
+        public async Task<(List<TaskItem> Items, int Total)> SearchAsync(Guid userId, Guid? teamId, Guid? statusId, string? search, Guid? assigneeId, PaginationParams? pagination = null)
         {
             var query = _context.TaskItems
                 .Where(t => t.DeletedAt == null)
@@ -69,6 +69,9 @@ namespace TaskFlowBackend.Repository
 
             if (teamId.HasValue)
                 query = query.Where(t => t.TeamId == teamId.Value);
+
+            if (statusId.HasValue)
+                query = query.Where(t => t.StatusId == statusId.Value);
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(t => t.Title.ToLower().Contains(search.ToLower()));

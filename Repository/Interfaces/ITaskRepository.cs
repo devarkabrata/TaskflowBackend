@@ -11,7 +11,7 @@ namespace TaskFlowBackend.Repository.Interfaces
         Task<TaskItem> UpdateAsync(TaskItem task);
         Task DeleteAsync(TaskItem task);
         Task<int> DeleteRangeAsync(IEnumerable<TaskItem> tasks);
-        Task<(List<TaskItem> Items, int Total)> SearchAsync(Guid userId, Guid? teamId, string? search, Guid? assigneeId, PaginationParams? pagination = null);
+        Task<(List<TaskItem> Items, int Total)> SearchAsync(Guid userId, Guid? teamId, Guid? statusId, string? search, Guid? assigneeId, PaginationParams? pagination = null);
         Task<List<TaskItem>> GetByTeamIdAsync(Guid teamId);
         Task<List<User>> GetUsersByIdsAsync(IEnumerable<Guid> userIds);
         Task<List<TaskItem>> GetUnarchivedTasksOlderthanThresold(Guid statusId, DateTime cutoff, int batchSize, CancellationToken ct = default);

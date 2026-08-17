@@ -151,7 +151,7 @@ namespace TaskFlowBackend.Services
             await _taskRepo.DeleteAsync(task);
         }
 
-        public async Task<PagedResult<TaskResponseDto>> ListTasksAsync(Guid userId, string? search, Guid? teamId, Guid? assigneeId, int page, int limit)
+        public async Task<PagedResult<TaskResponseDto>> ListTasksAsync(Guid userId, string? search, Guid? teamId, Guid? statusId, Guid? assigneeId, int page, int limit)
         {
             if (teamId.HasValue)
             {
@@ -160,7 +160,7 @@ namespace TaskFlowBackend.Services
             }
 
             var pagination = new PaginationParams { Page = page, Limit = limit };
-            var (items, total) = await _taskRepo.SearchAsync(userId, teamId, search, assigneeId, pagination);
+            var (items, total) = await _taskRepo.SearchAsync(userId, teamId, statusId, search, assigneeId, pagination);
 
             var userLookup = await BuildUserLookupAsync(items.SelectMany(t => t.AssigneeIds));
             var dtos = items.Select(t => MapToDto(t, userLookup)).ToList();
