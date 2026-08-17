@@ -168,13 +168,19 @@ namespace TaskFlowBackend.Services
             return new PagedResult<TaskResponseDto> { Data = dtos, Total = total, Page = page, Limit = limit };
         }
 
-        public async Task<BoardResponseDto> GetBoardAsync(Guid teamId, Guid userId)
+        public async Task<BoardResponseDto> GetBoardAsync(Guid teamId, Guid userId, Guid assigneeId = default)
         {
             var team = await GetTeamOrThrowAsync(teamId);
             EnsureMembership(team, userId);
 
             var statuses = await _boardStatusRepo.GetByTeamIdAsync(teamId);
             var tasks = await _taskRepo.GetByTeamIdAsync(teamId);
+
+            if(assigneeId != default)
+            {
+                tasks = tasks.Where(t => t.AssigneeIds.Contains(assigneeId)).ToList();
+            }
+
             var userLookup = await BuildUserLookupAsync(tasks.SelectMany(t => t.AssigneeIds));
 
             var columns = statuses.Select(status => new BoardStatusResponseDto
