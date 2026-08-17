@@ -26,12 +26,13 @@ namespace TaskFlowBackend.Controllers
         public async Task<ApiResponse<PagedResult<TaskResponseDto>>> GetTasks(
             [FromQuery] string? search,
             [FromQuery] Guid? teamId,
+            [FromQuery] Guid? statusId,
             [FromQuery] Guid? assigneeId,
             [FromQuery] int page = 1,
             [FromQuery] int limit = 20)
         {
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-            var result = await _taskService.ListTasksAsync(userId, search, teamId, assigneeId, page, limit);
+            var result = await _taskService.ListTasksAsync(userId, search, teamId, statusId, assigneeId, page, limit);
             return ApiResponse<PagedResult<TaskResponseDto>>.Success(result, "Tasks fetched successfully.");
         }
 
@@ -40,11 +41,12 @@ namespace TaskFlowBackend.Controllers
         public async Task<ApiResponse<PagedResult<TaskResponseDto>>> GetMyTasks(
             [FromQuery] string? search,
             [FromQuery] Guid? teamId,
+            [FromQuery] Guid? statusId,
             [FromQuery] int page = 1,
             [FromQuery] int limit = 20)
         {
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-            var result = await _taskService.ListTasksAsync(userId, search, teamId, userId, page, limit);
+            var result = await _taskService.ListTasksAsync(userId, search, teamId, statusId, userId, page, limit);
             return ApiResponse<PagedResult<TaskResponseDto>>.Success(result, "Your tasks fetched successfully.");
         }
 
