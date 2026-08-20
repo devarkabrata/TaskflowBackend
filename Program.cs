@@ -19,6 +19,10 @@ using TaskFlowBackend.Repository.Archive;
 using TaskFlowBackend.Services.Archive.Interfaces;
 using TaskFlowBackend.Services.Archive;
 
+// Render's containers hit inotify limits when appsettings.json watches are enabled;
+// disabling reload-on-change avoids the FileSystemWatcher crash at startup.
+Environment.SetEnvironmentVariable("DOTNET_hostBuilder__reloadConfigOnChange", "false");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
