@@ -14,6 +14,9 @@ namespace TaskFlowBackend.Repository
             _context = context;
         }
 
+        public async Task<Workspace?> GetInfoByIdAsync(Guid id)
+            => await _context.Workspaces.Include(w => w.Owner).Include(o => o.Teams).Include(m => m.Members).ThenInclude(m1 => m1.User).FirstOrDefaultAsync(w => w.Id == id);
+
         public async Task<Workspace?> GetByIdAsync(Guid id)
             => await _context.Workspaces.Include(w => w.Owner).ThenInclude(o => o.Settings).FirstOrDefaultAsync(w => w.Id == id);
 

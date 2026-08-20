@@ -372,6 +372,14 @@ namespace TaskFlowBackend.Services
             return workspace;
         }
 
+        public async Task<Workspace?> GetWorkspaceByIdAsync(Guid Id)
+        {
+            var workspace = await _workspaceRepo.GetInfoByIdAsync(Id);
+            if (workspace == null)
+                throw new NotFoundException("Workspace not found.");
+            return workspace;
+        }
+
         public async Task<int> GetWorkspaceCountAsync(Guid userId)
         {
             return await _workspaceRepo.GetCountByOwnerIdAsync(userId);

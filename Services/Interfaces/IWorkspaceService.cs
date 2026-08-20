@@ -18,5 +18,6 @@ namespace TaskFlowBackend.Services.Interfaces
         Task RemoveMemberAsync(Guid requestingUserId, Guid targetUserId);
         Task<Workspace> GetWorkspaceOrThrowAsync(Guid userId);
         Task<int> GetWorkspaceCountAsync(Guid userId);
+        Task<Workspace?> GetWorkspaceByIdAsync(Guid Id);
     }
 }
