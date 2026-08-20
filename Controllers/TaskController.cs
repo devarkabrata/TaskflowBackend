@@ -52,10 +52,18 @@ namespace TaskFlowBackend.Controllers
 
         // Must be declared before {id:guid} to avoid route conflict
         [HttpGet("team/{teamId:guid}/board")]
-        public async Task<ApiResponse<BoardResponseDto>> GetBoard(Guid teamId, [FromQuery] Guid assigneeId = default)
+        public async Task<ApiResponse<BoardResponseDto>> GetBoard(Guid teamId, [FromQuery] string? assigneeIds = null)
         {
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-            var result = await _taskService.GetBoardAsync(teamId, userId, assigneeId);
+            var parsedIds = new List<Guid>();
+            if (!string.IsNullOrWhiteSpace(assigneeIds))
+            {
+                parsedIds = assigneeIds
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(Guid.Parse)
+                    .ToList();
+            }
+            var result = await _taskService.GetBoardAsync(teamId, userId, parsedIds);
             return ApiResponse<BoardResponseDto>.Success(result, "Board fetched successfully.");
         }
 

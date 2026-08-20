@@ -168,7 +168,7 @@ namespace TaskFlowBackend.Services
             return new PagedResult<TaskResponseDto> { Data = dtos, Total = total, Page = page, Limit = limit };
         }
 
-        public async Task<BoardResponseDto> GetBoardAsync(Guid teamId, Guid userId, Guid assigneeId = default)
+        public async Task<BoardResponseDto> GetBoardAsync(Guid teamId, Guid userId, List<Guid> assigneeIds)
         {
             var team = await GetTeamOrThrowAsync(teamId);
             EnsureMembership(team, userId);
@@ -176,9 +176,11 @@ namespace TaskFlowBackend.Services
             var statuses = await _boardStatusRepo.GetByTeamIdAsync(teamId);
             var tasks = await _taskRepo.GetByTeamIdAsync(teamId);
 
-            if(assigneeId != default)
-            {
-                tasks = tasks.Where(t => t.AssigneeIds.Contains(assigneeId)).ToList();
+            // Check if the filter list is provided and contains elements
+            if (assigneeIds != null && assigneeIds.Count > 0) 
+            { 
+                // Filters tasks where at least one assignee matches the filter list
+                tasks = tasks.Where(t => t.AssigneeIds != null && t.AssigneeIds.Intersect(assigneeIds).Any()).ToList(); 
             }
 
             var userLookup = await BuildUserLookupAsync(tasks.SelectMany(t => t.AssigneeIds));
