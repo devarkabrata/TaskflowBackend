@@ -1,3 +1,4 @@
+using TaskFlowBackend.DTOs.Roles;
 using TaskFlowBackend.Enums;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Repository.Interfaces;
@@ -12,6 +13,26 @@ namespace TaskFlowBackend.Services
         public PermissionService(ITeamMemberRepository memberRepo)
         {
             _memberRepo = memberRepo;
+        }
+
+        public async Task<RoleResponseDto> ListPermissions(Guid userId, Guid teamId)
+        {
+            var member = await _memberRepo.GetAsync(teamId, userId);
+            if(member == null)
+            {
+                throw new NotFoundException("Member not found");
+            }
+            if(!member.Role.IsEnable)
+            {
+                throw new ForbiddenException($"The role of this member id not enabled.");
+            }
+            return new RoleResponseDto
+            {
+                Id = member.Role.Id,
+                Name = member.Role.Name,
+                Description = member.Role.Description,
+                Permissions = member.Role.Permissions.Select(p => p.ToString()).ToList()
+            };
         }
 
         public async Task<bool> HasPermissionAsync(Guid userId, Guid teamId, PermissionType permission)
