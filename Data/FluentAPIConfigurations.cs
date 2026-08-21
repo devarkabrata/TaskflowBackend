@@ -161,6 +161,8 @@ namespace TaskFlowBackend.Data.Fluent
         {
             modelBuilder.Entity<Comment>(entity =>
             {
+                entity.HasQueryFilter(c => c.Task.IsArchived != true); // Matches TaskItem's filter so an archived task's comments don't dangle past the filter
+
                 entity.ToTable("comments");
 
                 entity.HasKey(c => c.Id);
