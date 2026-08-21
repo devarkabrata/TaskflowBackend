@@ -2,6 +2,7 @@ using TaskFlowBackend.DTOs.Board;
 using TaskFlowBackend.DTOs.Events;
 using TaskFlowBackend.DTOs.Tasks;
 using TaskFlowBackend.DTOs.Tasks.Archive;
+using TaskFlowBackend.Enums;
 using TaskFlowBackend.Helpers;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
@@ -20,6 +21,7 @@ namespace TaskFlowBackend.Services
         private readonly IBoardStatusRepository _boardStatusRepo;
         private readonly IMigrateTasksRepository _migrateTasksRepo;
         private readonly IUserRepository _userRepo;
+        private readonly IPermissionService _permissionService;
         private readonly IEventPublisherService _eventPublisher;
 
         public TaskService(
@@ -28,6 +30,7 @@ namespace TaskFlowBackend.Services
             IBoardStatusRepository boardStatusRepo,
             IMigrateTasksRepository migrateTasksRepo,
             IUserRepository userRepo,
+            IPermissionService permissionService,
             IEventPublisherService eventPublisher)
         {
             _taskRepo = taskRepo;
@@ -35,6 +38,7 @@ namespace TaskFlowBackend.Services
             _boardStatusRepo = boardStatusRepo;
             _migrateTasksRepo = migrateTasksRepo;
             _userRepo = userRepo;
+            _permissionService = permissionService;
             _eventPublisher = eventPublisher;
         }
 
@@ -45,7 +49,7 @@ namespace TaskFlowBackend.Services
             if(user == null) throw new NotFoundException("User not found.");
 
             var team = await GetTeamOrThrowAsync(dto.TeamId);
-            EnsureMembership(team, userId);
+            await EnsurePermissionAsync(team.Id, userId, PermissionType.Write);
 
             await ValidateStatusBelongsToTeamAsync(dto.StatusId, dto.TeamId);
             ValidateAssigneesAreTeamMembers(team, dto.AssigneeIds);
@@ -107,7 +111,7 @@ namespace TaskFlowBackend.Services
         {
             var task = await _taskRepo.GetByIdAsync(taskId) ?? throw new NotFoundException("Task not found.");
             var team = await GetTeamOrThrowAsync(task.TeamId);
-            EnsureMembership(team, userId);
+            await EnsurePermissionAsync(team.Id, userId, PermissionType.Read);
             return await MapToDtoAsync(task);
         }
 
@@ -115,7 +119,7 @@ namespace TaskFlowBackend.Services
         {
             var task = await _taskRepo.GetByIdAsync(taskId) ?? throw new NotFoundException("Task not found.");
             var team = await GetTeamOrThrowAsync(task.TeamId);
-            EnsureMembership(team, userId);
+            await EnsurePermissionAsync(team.Id, userId, PermissionType.Write);
 
             if (dto.StatusId != null)
             {
@@ -146,7 +150,7 @@ namespace TaskFlowBackend.Services
         {
             var task = await _taskRepo.GetByIdAsync(taskId) ?? throw new NotFoundException("Task not found.");
             var team = await GetTeamOrThrowAsync(task.TeamId);
-            EnsureMembership(team, userId);
+            await EnsurePermissionAsync(team.Id, userId, PermissionType.Delete);
 
             await _taskRepo.DeleteAsync(task);
         }
@@ -155,8 +159,8 @@ namespace TaskFlowBackend.Services
         {
             if (teamId.HasValue)
             {
-                var team = await GetTeamOrThrowAsync(teamId.Value);
-                EnsureMembership(team, userId);
+                _ = await GetTeamOrThrowAsync(teamId.Value);
+                await EnsurePermissionAsync(teamId.Value, userId, PermissionType.Read);
             }
 
             var pagination = new PaginationParams { Page = page, Limit = limit };
@@ -170,8 +174,8 @@ namespace TaskFlowBackend.Services
 
         public async Task<BoardResponseDto> GetBoardAsync(Guid teamId, Guid userId, List<Guid> assigneeIds)
         {
-            var team = await GetTeamOrThrowAsync(teamId);
-            EnsureMembership(team, userId);
+            _ = await GetTeamOrThrowAsync(teamId);
+            await EnsurePermissionAsync(teamId, userId, PermissionType.Read);
 
             var statuses = await _boardStatusRepo.GetByTeamIdAsync(teamId);
             var tasks = await _taskRepo.GetByTeamIdAsync(teamId);
@@ -204,7 +208,7 @@ namespace TaskFlowBackend.Services
         {
             var task = await _taskRepo.GetByIdAsync(taskId) ?? throw new NotFoundException("Task not found.");
             var team = await GetTeamOrThrowAsync(task.TeamId);
-            EnsureMembership(team, userId);
+            await EnsurePermissionAsync(team.Id, userId, PermissionType.Write);
 
             await ValidateStatusBelongsToTeamAsync(statusId, task.TeamId);
 
@@ -307,11 +311,8 @@ namespace TaskFlowBackend.Services
         private async Task<Team> GetTeamOrThrowAsync(Guid teamId)
             => await _teamRepo.GetByIdAsync(teamId) ?? throw new NotFoundException("Team not found.");
 
-        private static void EnsureMembership(Team team, Guid userId)
-        {
-            if (!team.Members.Any(m => m.UserId == userId))
-                throw new ForbiddenException("You are not a member of this team.");
-        }
+        private async Task EnsurePermissionAsync(Guid teamId, Guid userId, PermissionType permission)
+            => await _permissionService.EnsureHasPermissionAsync(userId, teamId, permission);
 
         private async Task ValidateStatusBelongsToTeamAsync(Guid statusId, Guid teamId)
         {

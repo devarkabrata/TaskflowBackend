@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using TaskFlowBackend.Enums;
 
 namespace TaskFlowBackend.DTOs.Teams
 {
@@ -11,7 +10,7 @@ namespace TaskFlowBackend.DTOs.Teams
         public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Role is required.")]
-        public TeamRole Role { get; set; }
+        public Guid RoleId { get; set; }
 
         public bool AddToWorkspace { get; set; } = false;
     }

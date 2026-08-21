@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using TaskFlowBackend.Enums;
 
 namespace TaskFlowBackend.DTOs.Teams
 {
@@ -26,6 +25,6 @@ namespace TaskFlowBackend.DTOs.Teams
         public Guid UserId { get; set; }
 
         [Required]
-        public TeamRole Role { get; set; }
+        public Guid RoleId { get; set; }
     }
 }

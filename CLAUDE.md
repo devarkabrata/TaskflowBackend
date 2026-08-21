@@ -20,6 +20,7 @@ Models/             → EF Core entities (DB tables)
 DTOs/               → Request/response shapes (never expose Models directly)
 Data/               → AppDBContext + FluentAPIConfigurations
 Middleware/         → ExceptionMiddleware (global error handling)
+Attributes/         → Action filters, e.g. RequirePermissionAttribute
 Helpers/            → ApiResponse<T>, ApiError, custom exceptions
 Enums/              → Shared enum types
 APP Progress/       → Per-controller API endpoint tracking (markdown)
@@ -125,6 +126,7 @@ JWT claims: `sub` (userId), `email`, `name`, `jti`, `iat` (Unix timestamp), `ava
 | Teams | teams | Active |
 | TeamMembers | team_members | Active |
 | TeamInvitations | invitations | Active |
+| Roles | roles | Active |
 | BoardStatuses | — | Not yet added to DbContext |
 | TaskItems | — | Not yet added to DbContext |
 | Comments | — | Not yet added to DbContext |
@@ -149,8 +151,9 @@ JWT claims: `sub` (userId), `email`, `name`, `jti`, `iat` (Unix timestamp), `ava
 | WorkspaceMember | Id, WorkspaceId, UserId, Status (Active/Pending), JoinedAt |
 | WorkspaceInvitation | Id, WorkspaceId, InvitedBy, Email, Status, ExpiresAt (+7 days) |
 | Team | Id, Name, Description, Color (hex), WorkspaceId, AdminId, CreatedBy |
-| TeamMember | TeamId + UserId (composite PK), Role, JoinedAt |
-| TeamInvitation | Id, TeamId, InvitedBy, Email, Role, Status, ExpiresAt (+7 days) |
+| TeamMember | TeamId + UserId (composite PK), RoleId (→ Roles), JoinedAt |
+| TeamInvitation | Id, TeamId, InvitedBy, Email, RoleId (→ Roles), Status, ExpiresAt (+7 days) |
+| Roles | Id, Name, Description, IsEnable, Permissions (List\<PermissionType\>) |
 | BoardStatus | Id, TeamId, Name, Description, Position |
 | TaskItem | Id, TaskNumber, Title, Description, Priority, Label, StatusId, TeamId, AssigneeIds (Guid[]), Progress (0–100), DeletedAt (soft delete) |
 | Comment | Id, TaskId, AuthorId, Body, ImageUrls (string[]), ImagePublicIds (string[]) |
@@ -162,13 +165,18 @@ JWT claims: `sub` (userId), `email`, `name`, `jti`, `iat` (Unix timestamp), `ava
 | Enum | Values |
 |------|--------|
 | Priority | High, Medium, Low |
-| TeamRole | Admin, PM, TL, Developer |
+| PermissionType | Read, Write, Delete, Manage |
 | LabelType | Feature, Bug, Design, Docs, Infra, Refactor |
 | InvitationStatus | Pending, Accepted, Declined, Expired |
 | WorkspaceMemberStatus | Active, Pending |
 | SprintStatus | Planning, Active, Completed |
 
 All enums stored as **strings** in the DB (configured in FluentAPIConfigurations).
+
+### Roles & permissions
+`TeamMember`/`TeamInvitation` reference a `Roles` row via `RoleId` instead of a fixed role enum. Each `Roles` row carries a `List<PermissionType>` (stored as `text[]`). Roles are **predefined only** for now — seeded via migration, no create/edit/delete-role API. `GET /api/roles` lists the enabled roles for building a role picker.
+
+Endpoints that need a permission gate on a team-scoped route use `[RequirePermission(PermissionType.X)]` (`Attributes/RequirePermissionAttribute.cs`) — an `IAsyncActionFilter` that reads the team id from a named action argument (defaults to `id`) and checks it via `IPermissionService`. For resources that aren't directly a team id in the route (e.g. a task id), `IPermissionService.EnsureHasPermissionAsync` is called manually in the service once the resource's `TeamId` is loaded — see `TaskService` (Read for get/list/board, Write for create/update/status-change, Delete for delete).
 
 ---
 

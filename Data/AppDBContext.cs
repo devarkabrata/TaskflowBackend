@@ -19,6 +19,7 @@ namespace TaskFlowBackend.Data
         public DbSet<Team> Teams => Set<Team>();
         public DbSet<TeamMember> TeamMembers => Set<TeamMember>();
         public DbSet<TeamInvitation> TeamInvitations => Set<TeamInvitation>();
+        public DbSet<Roles> Roles => Set<Roles>();
         public DbSet<BoardStatus> BoardStatuses => Set<BoardStatus>();
         public DbSet<TaskItem> TaskItems => Set<TaskItem>();
         public DbSet<Comment> Comments => Set<Comment>();
@@ -28,6 +29,7 @@ namespace TaskFlowBackend.Data
             base.OnModelCreating(modelBuilder);
 
             // Fluent API configurations
+            FluentAPIConfigurations.ConfigureRoles(modelBuilder);
             FluentAPIConfigurations.ConfigureUser(modelBuilder);
             FluentAPIConfigurations.ConfigureUserSettings(modelBuilder);
             FluentAPIConfigurations.ConfigureWorkspace(modelBuilder);

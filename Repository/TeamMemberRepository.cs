@@ -17,12 +17,14 @@ namespace TaskFlowBackend.Repository
         public async Task<TeamMember?> GetAsync(Guid teamId, Guid userId)
             => await _context.TeamMembers
                 .Include(m => m.User)
+                .Include(m => m.Role)
                 .FirstOrDefaultAsync(m => m.TeamId == teamId && m.UserId == userId);
 
         public async Task<List<TeamMember>> GetByTeamIdAsync(Guid teamId)
             => await _context.TeamMembers
                 .Where(m => m.TeamId == teamId)
                 .Include(m => m.User)
+                .Include(m => m.Role)
                 .ToListAsync();
 
         public async Task AddAsync(TeamMember member)

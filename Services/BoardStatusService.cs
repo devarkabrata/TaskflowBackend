@@ -1,5 +1,6 @@
 using TaskFlowBackend.DTOs;
 using TaskFlowBackend.DTOs.Board;
+using TaskFlowBackend.Enums;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Helpers.CustomException;
 using TaskFlowBackend.Models;
@@ -12,11 +13,13 @@ namespace TaskFlowBackend.Services
     {
         private readonly IBoardStatusRepository _boardStatusRepo;
         private readonly ITeamRepository _teamRepo;
+        private readonly IPermissionService _permissionService;
 
-        public BoardStatusService(IBoardStatusRepository boardStatusRepo, ITeamRepository teamRepo)
+        public BoardStatusService(IBoardStatusRepository boardStatusRepo, ITeamRepository teamRepo, IPermissionService permissionService)
         {
             _boardStatusRepo = boardStatusRepo;
             _teamRepo = teamRepo;
+            _permissionService = permissionService;
         }
 
         public async Task<BoardStatusResponseDTO> CreateStatusAsync(BoardStatusRequestDTO request, Guid userId)
@@ -25,6 +28,9 @@ namespace TaskFlowBackend.Services
 
             if(team == null)
                 throw new NotFoundException("Team not found.");
+
+            // Check relevent permission
+            await EnsurePermissionAsync(team.Id, userId, PermissionType.Manage);
 
             if (!team.Members.Any(m => m.UserId == userId))
                 throw new ForbiddenException("You are not a member of this team.");
@@ -82,16 +88,22 @@ namespace TaskFlowBackend.Services
             var status = await _boardStatusRepo.GetByIdAsync(statusId) ?? throw new NotFoundException("Status not found.");
             var team = await _teamRepo.GetByIdAsync(status.TeamId) ?? throw new NotFoundException("Team not found.");
 
+            // Check relevent permission
+            await EnsurePermissionAsync(team.Id, userId, PermissionType.Manage);
+
             if (!team.Members.Any(m => m.UserId == userId))
                 throw new ForbiddenException("You are not a member of this team.");
 
             if (!status.IsDeletable)
-                throw new ValidationException("Validation failed.", new List<ApiError>
+                throw new ValidationException("This status is a default column and cannot be deleted.", new List<ApiError>
                 {
                     new ApiError { Field = "statusId", Code = "INVALID_STATUS_NOT_DELETABLE", Message = "This status is a default column and cannot be deleted." }
                 });
 
             await _boardStatusRepo.DeleteAsync(statusId);
         }
+
+        private async Task EnsurePermissionAsync(Guid teamId, Guid userId, PermissionType permission)
+            => await _permissionService.EnsureHasPermissionAsync(userId, teamId, permission);
     }
 }

@@ -9,6 +9,52 @@ namespace TaskFlowBackend.Data.Fluent
 {
     public class FluentAPIConfigurations
     {
+        public static void ConfigureRoles(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Roles>(entity =>
+            {
+                entity.ToTable("roles");
+
+                entity.HasKey(r => r.Id);
+                entity.Property(r => r.Id)
+                    .HasDefaultValueSql("gen_random_uuid()");
+
+                entity.Property(r => r.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(r => r.Description)
+                    .HasMaxLength(300);
+
+                entity.Property(r => r.IsEnable)
+                    .IsRequired()
+                    .HasDefaultValue(true);
+
+                entity.Property(r => r.Permissions)
+                    .IsRequired()
+                    .HasConversion(
+                        v => v.Select(p => p.ToString()).ToArray(),
+                        v => v.Select(p => Enum.Parse<PermissionType>(p)).ToList(),
+                        new ValueComparer<List<PermissionType>>(
+                            (a, b) => a!.SequenceEqual(b!),
+                            v => v.Aggregate(0, (hash, p) => HashCode.Combine(hash, p)),
+                            v => v.ToList()))
+                    .HasColumnType("text[]")
+                    .HasDefaultValueSql("'{}'::text[]");
+
+                entity.Property(r => r.CreatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.Property(r => r.UpdatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("NOW()");
+
+                entity.HasIndex(r => r.Name)
+                    .IsUnique();
+            });
+        }
+
         public static void ConfigureBoardStatus(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<BoardStatus>(entity =>
@@ -165,12 +211,6 @@ namespace TaskFlowBackend.Data.Fluent
                 entity.HasIndex(ti => new { ti.TeamId, ti.Email })
                     .IsUnique();
 
-                entity.Property(ti => ti.Role)
-                    .IsRequired()
-                    .HasConversion<string>()
-                    .HasDefaultValue(TeamRole.Developer)
-                    .HasSentinel((TeamRole)(-1));
-
                 entity.Property(ti => ti.Status)
                     .IsRequired()
                     .HasConversion<string>()
@@ -197,6 +237,11 @@ namespace TaskFlowBackend.Data.Fluent
                     .WithMany(u => u.SentTeamInvitations)
                     .HasForeignKey(ti => ti.InvitedBy)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(ti => ti.Role)
+                    .WithMany(r => r.TeamInvitations)
+                    .HasForeignKey(ti => ti.RoleId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
 
@@ -208,12 +253,6 @@ namespace TaskFlowBackend.Data.Fluent
 
                 // Composite PK — no separate Id column, matches the DB schema
                 entity.HasKey(tm => new { tm.TeamId, tm.UserId });
-
-                entity.Property(tm => tm.Role)
-                    .IsRequired()
-                    .HasConversion<string>()
-                    .HasDefaultValue(TeamRole.Developer)
-                    .HasSentinel((TeamRole)(-1));
 
                 entity.Property(tm => tm.JoinedAt)
                     .IsRequired()
@@ -228,6 +267,11 @@ namespace TaskFlowBackend.Data.Fluent
                     .WithMany(u => u.TeamMemberships)
                     .HasForeignKey(tm => tm.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(tm => tm.Role)
+                    .WithMany(r => r.TeamMembers)
+                    .HasForeignKey(tm => tm.RoleId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
 

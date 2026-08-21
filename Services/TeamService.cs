@@ -19,6 +19,7 @@ namespace TaskFlowBackend.Services
         private readonly IWorkspaceMemberRepository _workspaceMemberRepo;
         private readonly IBoardStatusRepository _boardStatusRepo;
         private readonly IUserRepository _userRepo;
+        private readonly IRoleRepository _roleRepo;
         private readonly IEventPublisherService _eventPublisher;
 
         public TeamService(
@@ -29,6 +30,7 @@ namespace TaskFlowBackend.Services
             IWorkspaceMemberRepository workspaceMemberRepo,
             IBoardStatusRepository boardStatusRepo,
             IUserRepository userRepo,
+            IRoleRepository roleRepo,
             IEventPublisherService eventPublisher)
         {
             _teamRepo = teamRepo;
@@ -38,7 +40,19 @@ namespace TaskFlowBackend.Services
             _workspaceMemberRepo = workspaceMemberRepo;
             _boardStatusRepo = boardStatusRepo;
             _userRepo = userRepo;
+            _roleRepo = roleRepo;
             _eventPublisher = eventPublisher;
+        }
+
+        private async Task<Roles> GetEnabledRoleOrThrowAsync(Guid roleId)
+        {
+            var role = await _roleRepo.GetByIdAsync(roleId);
+            if (role == null || !role.IsEnable)
+                throw new ValidationException("Validation failed.", new List<ApiError>
+                {
+                    new ApiError { Field = "roleId", Code = "ROLE_NOT_FOUND", Message = $"Role {roleId} does not exist or is disabled." }
+                });
+            return role;
         }
 
         public async Task<List<TeamResponseDto>> GetMyTeamsAsync(Guid userId, bool excludeWorkspace = false)
@@ -78,7 +92,7 @@ namespace TaskFlowBackend.Services
 
             var members = new List<TeamMember>
             {
-                new TeamMember { TeamId = created.Id, UserId = userId, Role = TeamRole.Admin, JoinedAt = DateTime.UtcNow }
+                new TeamMember { TeamId = created.Id, UserId = userId, RoleId = SystemRoleIds.Admin, JoinedAt = DateTime.UtcNow }
             };
 
             if (dto.MemberIds != null)
@@ -87,7 +101,8 @@ namespace TaskFlowBackend.Services
                 {
                     var wsMember = await _workspaceMemberRepo.GetByUserIdAsync(workspace.Id, m.UserId);
                     if (wsMember == null) continue;
-                    members.Add(new TeamMember { TeamId = created.Id, UserId = m.UserId, Role = m.Role, JoinedAt = DateTime.UtcNow });
+                    await GetEnabledRoleOrThrowAsync(m.RoleId);
+                    members.Add(new TeamMember { TeamId = created.Id, UserId = m.UserId, RoleId = m.RoleId, JoinedAt = DateTime.UtcNow });
                 }
             }
 
@@ -150,7 +165,6 @@ namespace TaskFlowBackend.Services
         public async Task<TeamResponseDto> UpdateDetailsAsync(Guid teamId, UpdateTeamRequestDto dto, Guid userId)
         {
             var team = await _teamRepo.GetByIdAsync(teamId) ?? throw new NotFoundException("Team not found.");
-            if (team.AdminId != userId) throw new ForbiddenException("Only the team admin can update team details.");
 
             if (dto.Name != null) team.Name = dto.Name;
             if (dto.Description != null) team.Description = dto.Description;
@@ -164,7 +178,6 @@ namespace TaskFlowBackend.Services
         public async Task<TeamResponseDto> SyncMembersAsync(Guid teamId, List<TeamMemberUpdateDto> incoming, Guid userId)
         {
             var team = await _teamRepo.GetByIdAsync(teamId) ?? throw new NotFoundException("Team not found.");
-            if (team.AdminId != userId) throw new ForbiddenException("Only the team admin can update team members.");
 
             if (!incoming.Any(m => m.UserId == team.AdminId))
                 throw new ValidationException("Validation failed.", new List<ApiError>
@@ -182,22 +195,24 @@ namespace TaskFlowBackend.Services
                     {
                         new ApiError { Field = "members", Code = "NOT_WORKSPACE_MEMBER", Message = $"User {m.UserId} is not a member of this workspace." }
                     });
+
+                await GetEnabledRoleOrThrowAsync(m.RoleId);
             }
 
             var currentMembers = team.Members.ToList();
-            var incomingIds = incoming.ToDictionary(m => m.UserId, m => m.Role);
+            var incomingIds = incoming.ToDictionary(m => m.UserId, m => m.RoleId);
             var currentIds = currentMembers.ToDictionary(m => m.UserId, m => m);
 
             var toRemove = currentMembers.Where(m => !incomingIds.ContainsKey(m.UserId)).ToList();
 
             var toAdd = incoming
                 .Where(m => !currentIds.ContainsKey(m.UserId))
-                .Select(m => new TeamMember { TeamId = teamId, UserId = m.UserId, Role = m.Role, JoinedAt = DateTime.UtcNow })
+                .Select(m => new TeamMember { TeamId = teamId, UserId = m.UserId, RoleId = m.RoleId, JoinedAt = DateTime.UtcNow })
                 .ToList();
 
             var toUpdate = incoming
-                .Where(m => currentIds.ContainsKey(m.UserId) && currentIds[m.UserId].Role != m.Role)
-                .Select(m => { currentIds[m.UserId].Role = m.Role; return currentIds[m.UserId]; })
+                .Where(m => currentIds.ContainsKey(m.UserId) && currentIds[m.UserId].RoleId != m.RoleId)
+                .Select(m => { currentIds[m.UserId].RoleId = m.RoleId; return currentIds[m.UserId]; })
                 .ToList();
 
             await _memberRepo.SyncAsync(toAdd, toRemove, toUpdate);
@@ -241,8 +256,9 @@ namespace TaskFlowBackend.Services
 
         public async Task<TeamInvitationResponseDto> InviteToTeamAsync(Guid teamId, TeamInviteRequestDto dto, Guid userId)
         {
-            var team = await _teamRepo.GetByIdAsync(teamId) ?? throw new NotFoundException("Team not found.");
-            if (team.AdminId != userId) throw new ForbiddenException("Only the team admin can invite members.");
+            _ = await _teamRepo.GetByIdAsync(teamId) ?? throw new NotFoundException("Team not found.");
+
+            var role = await GetEnabledRoleOrThrowAsync(dto.RoleId);
 
             var existing = await _invitationRepo.GetByEmailAndTeamAsync(teamId, dto.Email);
             if (existing != null)
@@ -257,7 +273,7 @@ namespace TaskFlowBackend.Services
                 TeamId = teamId,
                 InvitedBy = userId,
                 Email = dto.Email,
-                Role = dto.Role,
+                RoleId = dto.RoleId,
                 Status = InvitationStatus.Pending,
                 ExpiresAt = DateTime.UtcNow.AddDays(7),
                 CreatedAt = DateTime.UtcNow,
@@ -270,7 +286,7 @@ namespace TaskFlowBackend.Services
                 Id = created.Id,
                 TeamId = created.TeamId,
                 Email = created.Email,
-                Role = created.Role.ToString(),
+                Role = role.Name,
                 Status = created.Status.ToString().ToLower(),
                 ExpiresAt = created.ExpiresAt,
                 CreatedAt = created.CreatedAt
@@ -280,7 +296,6 @@ namespace TaskFlowBackend.Services
         public async Task RemoveMemberAsync(Guid teamId, Guid targetUserId, Guid requesterId)
         {
             var team = await _teamRepo.GetByIdAsync(teamId) ?? throw new NotFoundException("Team not found.");
-            if (team.AdminId != requesterId) throw new ForbiddenException("Only the team admin can remove members.");
             if (team.AdminId == targetUserId)
                 throw new ValidationException("Validation failed.", new List<ApiError>
                 {
@@ -320,7 +335,8 @@ namespace TaskFlowBackend.Services
                 Name = m.User.Name,
                 AvatarInitials = m.User.AvatarInitials,
                 AvatarUrl = m.User.AvatarUrl ?? "",
-                Role = m.Role.ToString()
+                RoleId = m.RoleId,
+                Role = m.Role.Name
             }).ToList(),
             StatusTaskCounts = team.Tasks.GroupBy(task => task.Status.Name).ToDictionary(g => g.Key, g => g.Count()),
             CreatedAt = team.CreatedAt,

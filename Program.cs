@@ -123,6 +123,7 @@ builder.Services.AddScoped<IBoardStatusRepository, BoardStatusRepository>();
 builder.Services.AddScoped<ITaskRepository, TaskRepository>();
 builder.Services.AddScoped<IMigrateTasksRepository, MigrateTasksRepository>();
 builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
 // ==== APP Services ====
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -138,6 +139,8 @@ builder.Services.AddScoped<ITaskMigrationService, TaskMigrationService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<ITaskExportService, TaskExportService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 
 builder.Services.AddControllers()

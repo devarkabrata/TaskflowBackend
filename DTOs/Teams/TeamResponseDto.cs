@@ -21,6 +21,7 @@ namespace TaskFlowBackend.DTOs.Teams
         public string Name { get; set; } = string.Empty;
         public string AvatarInitials { get; set; } = string.Empty;
         public string AvatarUrl { get; set; } = string.Empty;
+        public Guid RoleId { get; set; }
         public string Role { get; set; } = string.Empty;
     }
 }

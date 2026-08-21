@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using TaskFlowBackend.Attributes;
 using TaskFlowBackend.DTOs.Teams;
+using TaskFlowBackend.Enums;
 using TaskFlowBackend.Helpers.API;
 using TaskFlowBackend.Services.Interfaces;
 
@@ -54,6 +56,7 @@ namespace TaskFlowBackend.Controllers
         }
 
         [HttpPut("{id:guid}")]
+        [RequirePermission(PermissionType.Manage)]
         public async Task<ApiResponse<TeamResponseDto>> UpdateTeam(Guid id, [FromBody] UpdateTeamRequestDto dto)
         {
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
@@ -80,6 +83,7 @@ namespace TaskFlowBackend.Controllers
         }
 
         [HttpPost("{id:guid}/invite")]
+        [RequirePermission(PermissionType.Manage)]
         public async Task<ApiResponse<TeamInvitationResponseDto>> InviteToTeam(Guid id, [FromBody] TeamInviteRequestDto dto)
         {
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
@@ -88,6 +92,7 @@ namespace TaskFlowBackend.Controllers
         }
 
         [HttpDelete("{id:guid}/members/{targetUserId:guid}")]
+        [RequirePermission(PermissionType.Manage)]
         public async Task<ApiResponse<object>> RemoveMember(Guid id, Guid targetUserId)
         {
             var userId = Guid.Parse(User.FindFirstValue(JwtRegisteredClaimNames.Sub)!);

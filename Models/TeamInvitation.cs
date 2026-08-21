@@ -8,7 +8,7 @@ namespace TaskFlowBackend.Models
         public Guid TeamId { get; set; }
         public Guid InvitedBy { get; set; }
         public string Email { get; set; } = string.Empty;
-        public TeamRole Role { get; set; }
+        public Guid RoleId { get; set; }
         public InvitationStatus Status { get; set; }
         public DateTime ExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -17,5 +17,6 @@ namespace TaskFlowBackend.Models
         // Navigation properties
         public Team Team { get; set; } = null!;
         public User Sender { get; set; } = null!;
+        public Roles Role { get; set; } = null!;
     }
 }

@@ -3,11 +3,12 @@ using System.Text.Json.Serialization;
 namespace TaskFlowBackend.Enums
 {
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    public enum TeamRole
+    public enum PermissionType
     {
-        Admin,
-        PM,
-        TL,
-        Developer
+        Read,
+        Write,
+        Delete,
+        Manage,
+        Comment
     }
 }
