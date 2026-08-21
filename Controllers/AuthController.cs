@@ -102,7 +102,7 @@ namespace TaskFlowBackend.Controllers
                     TeamId = tm.TeamId,
                     TeamName = tm.Team.Name,
                     WorkspaceId = tm.Team.WorkspaceId,
-                    Role = tm.Role.ToString().ToLower(),
+                    Role = tm.Role.Name ?? "",
                     JoinedAt = tm.JoinedAt
                 }).ToList() ?? new()
             };

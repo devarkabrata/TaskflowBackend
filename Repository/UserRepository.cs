@@ -57,6 +57,7 @@ namespace TaskFlowBackend.Repository
                 .Include(u => u.Settings)
                 .Include(u => u.WorkspaceMemberships).ThenInclude(wm => wm.Workspace)
                 .Include(u => u.TeamMemberships).ThenInclude(tm => tm.Team)
+                .Include(u => u.TeamMemberships).ThenInclude(tm => tm.Role)
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 
